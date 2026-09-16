@@ -1,0 +1,23 @@
+{
+  "name": "cueclock",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CueClock - cross-platform stage/event countdown timer with control panel, fullscreen display, and Companion integration",
+  "workspaces": [
+    "packages/shared",
+    "packages/server",
+    "packages/web",
+    "packages/electron"
+  ],
+  "scripts": {
+    "build": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/web",
+    "dev:server": "npm run dev -w packages/server",
+    "dev:web": "npm run dev -w packages/web",
+    "test": "npm run test -w packages/server",
+    "electron:dev": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/web && npm run start -w packages/electron",
+    "electron:build": "npm run build && npm run build -w packages/electron && npm run dist -w packages/electron"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

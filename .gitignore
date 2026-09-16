@@ -1,0 +1,7 @@
+node_modules/
+dist/
+vendor/
+release/
+*.log
+.DS_Store
+.cueclock/

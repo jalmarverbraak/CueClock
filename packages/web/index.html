@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CueClock</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background: #0b0d10;
+        color: #f2f2f2;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        gap: 1.5rem;
+      }
+      h1 {
+        margin: 0;
+      }
+      a.card {
+        display: block;
+        text-decoration: none;
+        color: white;
+        background: #1c1f24;
+        padding: 1.25rem 2.5rem;
+        border-radius: 14px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        width: 260px;
+        text-align: center;
+      }
+      a.card:hover {
+        background: #2a2e35;
+      }
+      #lan {
+        opacity: 0.5;
+        font-size: 0.85rem;
+        margin-top: 1rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>CueClock</h1>
+    <a class="card" href="/control.html">Open Control Panel</a>
+    <a class="card" href="/display.html">Open Fullscreen Display</a>
+    <div id="lan"></div>
+    <script>
+      fetch('/api/info')
+        .then((r) => r.json())
+        .then((info) => {
+          const el = document.getElementById('lan');
+          if (info.lanUrls?.length) {
+            el.textContent = 'On this network: ' + info.lanUrls.join(' · ');
+          }
+        })
+        .catch(() => undefined);
+    </script>
+  </body>
+</html>
