@@ -48,6 +48,9 @@ function createControlWindow(port: number) {
     width: 1280,
     height: 860,
     title: 'CueClock — Control',
+    // Matches the Control panel's own background so there's never a mismatched
+    // native-window color visible during load/resize before the page paints.
+    backgroundColor: '#0a0b0d',
   });
   controlWindow.loadURL(`http://localhost:${port}/control.html`);
   controlWindow.on('closed', () => {
@@ -81,6 +84,10 @@ function openOutputWindow(options: {
     height: 720,
     title: options.title,
     autoHideMenuBar: true,
+    // Matches display.html's own background so repositioning/resizing content (e.g.
+    // moving the timer, entering fullscreen) never flashes Electron's native black
+    // compositor surface through as a visible bar before the page repaints.
+    backgroundColor: '#05070a',
   });
   win.loadURL(`http://localhost:${options.port}${options.urlPath}`);
   if (target) win.setFullScreen(true);

@@ -12,6 +12,9 @@ const POSITIONS: DisplayPosition[] = [
   'bottom-right',
 ];
 
+const SIZE_MIN = 25;
+const SIZE_MAX = 800;
+
 const SYSTEM_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'system');
 const GOOGLE_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'google');
 
@@ -87,15 +90,31 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
         </label>
 
         <label className="style-editor__field">
-          <span>Size ({style.sizePercent}%)</span>
-          <input
-            type="range"
-            min={40}
-            max={200}
-            step={10}
-            value={style.sizePercent}
-            onChange={(e) => patch({ sizePercent: Number(e.target.value) })}
-          />
+          <span>Size</span>
+          <div className="style-editor__size">
+            <input
+              type="range"
+              min={SIZE_MIN}
+              max={SIZE_MAX}
+              step={5}
+              value={style.sizePercent}
+              onChange={(e) => patch({ sizePercent: Number(e.target.value) })}
+            />
+            <input
+              type="number"
+              className="text-input style-editor__size-input"
+              min={SIZE_MIN}
+              max={SIZE_MAX}
+              step={1}
+              value={style.sizePercent}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (Number.isNaN(value)) return;
+                patch({ sizePercent: Math.min(SIZE_MAX, Math.max(SIZE_MIN, value)) });
+              }}
+            />
+            <span>%</span>
+          </div>
         </label>
       </div>
 

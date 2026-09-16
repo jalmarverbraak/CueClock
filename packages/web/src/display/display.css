@@ -2,8 +2,12 @@
   height: 100vh;
   width: 100vw;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
+  /* minmax(0, 1fr), not bare 1fr: a bare 1fr track has an implicit min size of "auto"
+     (its content), so a large timer would grow its own row/column at the expense of
+     the others, unbalancing the 3x3 grid. minmax(0, 1fr) keeps all thirds perfectly
+     even regardless of content size; oversized text simply overflows its cell. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   background: #05070a;
   color: #f2f2f2;
   transition: background-color 0.4s ease, color 0.4s ease;
