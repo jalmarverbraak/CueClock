@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, screen, dialog } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'node:path';
 import type { createServer as CreateServerFn } from '@cueclock/server';
 
@@ -144,6 +145,83 @@ function openKeyFillWindow(port: number, { fullscreenOnThird }: { fullscreenOnTh
   });
 }
 
+// Update metadata (app-update.yml) only exists in a real packaged build - electron-builder
+// writes it from the "publish" config at package time. In a dev/unpacked run there's nothing
+// to check against, so we skip it entirely rather than surface a confusing file-not-found error.
+//
+// Caveat: these builds aren't code-signed (see the release workflow). On Windows and Linux
+// (AppImage) that's fine - checking, downloading, and installing all work unsigned. On macOS,
+// Squirrel.Mac (the mechanism electron-updater uses there) generally expects a signed app to
+// safely apply an update in place; an unsigned build may check and download fine but fail on
+// the final install step. Signing later removes this gap without any code changes here.
+let checkingForUpdatesManually = false;
+
+function reportUpdateError(err: Error) {
+  if (!checkingForUpdatesManually) return;
+  checkingForUpdatesManually = false;
+  dialog.showMessageBox({
+    type: 'error',
+    title: 'Update check failed',
+    message: 'Could not check for updates.',
+    detail: err.message,
+  });
+}
+
+autoUpdater.on('error', reportUpdateError);
+
+autoUpdater.on('update-not-available', () => {
+  if (!checkingForUpdatesManually) return;
+  checkingForUpdatesManually = false;
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'No update available',
+    message: 'You already have the latest version of CueClock.',
+  });
+});
+
+autoUpdater.on('update-available', (info) => {
+  if (!checkingForUpdatesManually) return;
+  checkingForUpdatesManually = false;
+  dialog.showMessageBox({
+    type: 'info',
+    title: 'Update available',
+    message: `CueClock ${info.version} is downloading in the background.`,
+    detail: "You'll be asked to restart once it's ready to install.",
+  });
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  checkingForUpdatesManually = false;
+  dialog
+    .showMessageBox({
+      type: 'question',
+      buttons: ['Restart && Install', 'Later'],
+      defaultId: 0,
+      cancelId: 1,
+      title: 'Update ready',
+      message: `CueClock ${info.version} has been downloaded.`,
+      detail: 'Restart now to install it, or keep working and it will install the next time you quit.',
+    })
+    .then((result) => {
+      if (result.response === 0) autoUpdater.quitAndInstall();
+    });
+});
+
+function checkForUpdates(options: { manual: boolean }) {
+  if (!app.isPackaged) {
+    if (options.manual) {
+      dialog.showMessageBox({
+        type: 'info',
+        title: 'Check for Updates',
+        message: 'Updates can only be checked from a packaged build, not this development run.',
+      });
+    }
+    return;
+  }
+  checkingForUpdatesManually = options.manual;
+  autoUpdater.checkForUpdates().catch((err) => reportUpdateError(err));
+}
+
 function buildMenu(port: number) {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -151,6 +229,11 @@ function buildMenu(port: number) {
         label: 'CueClock',
         submenu: [
           { role: 'about' },
+          { type: 'separator' },
+          {
+            label: 'Check for Updates…',
+            click: () => checkForUpdates({ manual: true }),
+          },
           { type: 'separator' },
           { role: 'quit' },
         ],
@@ -225,6 +308,8 @@ app.whenReady().then(async () => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createControlWindow(port);
   });
+
+  checkForUpdates({ manual: false });
 });
 
 app.on('window-all-closed', () => {
