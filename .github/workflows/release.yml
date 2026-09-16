@@ -1,0 +1,52 @@
+name: Release
+
+# Builds the desktop app on macOS and Windows and publishes the installers
+# (.dmg / .exe) straight to a GitHub Release.
+#
+# To cut a release: bump the version in packages/electron/package.json,
+# commit it, then:
+#   git tag v1.0.0
+#   git push origin v1.0.0
+# A few minutes later the tag's Release page has both installers attached.
+# Can also be run manually from the Actions tab (Run workflow) for testing.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - run: npm ci
+
+      - name: Build shared/server/web
+        run: npm run build
+
+      - name: Build electron shell
+        run: npm run build -w packages/electron
+
+      - name: Package and publish
+        working-directory: packages/electron
+        run: npx electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No code-signing certificate is configured, so on macOS stop
+          # electron-builder from searching the keychain for one - without
+          # this the build fails looking for an identity that doesn't exist.
+          CSC_IDENTITY_AUTO_DISCOVERY: false

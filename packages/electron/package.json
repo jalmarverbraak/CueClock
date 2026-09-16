@@ -2,6 +2,8 @@
   "name": "@cueclock/electron",
   "version": "0.1.0",
   "private": true,
+  "description": "CueClock desktop app - control panel and fullscreen output display",
+  "author": "Webinary Media",
   "main": "dist/main.js",
   "scripts": {
     "prepare-vendor": "node scripts/prepare-vendor.js",
@@ -15,7 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
-    "electron": "^32.2.0",
+    "electron": "32.3.3",
     "electron-builder": "^25.1.8",
     "esbuild": "^0.24.0",
     "typescript": "^5.6.3"
@@ -26,6 +28,12 @@
     "files": ["dist/**/*", "vendor/**/*", "package.json"],
     "directories": {
       "output": "release"
+    },
+    "electronVersion": "32.3.3",
+    "publish": {
+      "provider": "github",
+      "owner": "Webinary-Media",
+      "repo": "tijd-voor-timer"
     },
     "mac": {
       "target": "dmg",
