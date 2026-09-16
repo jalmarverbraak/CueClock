@@ -28,6 +28,9 @@ export function NowPlaying({ state, sendCommand }: Props) {
   const isCountUp = state.mode === 'countup';
   const displaySeconds = isCountUp ? Math.abs(state.remainingSeconds) : state.remainingSeconds;
 
+  const canSaveCurrent = state.durationSeconds > 0;
+  const alreadySaved = canSaveCurrent && state.presets.some((p) => p.durationSeconds === state.durationSeconds);
+
   function applySpeed(percent: number) {
     sendCommand({ type: 'setSpeed', speedPercent: percent });
   }
@@ -38,6 +41,11 @@ export function NowPlaying({ state, sendCommand }: Props) {
       return;
     }
     sendCommand({ type: 'addSeconds', seconds });
+  }
+
+  function saveCurrentAsPreset() {
+    if (!canSaveCurrent || alreadySaved) return;
+    sendCommand({ type: 'savePreset', name: formatDuration(state.durationSeconds), durationSeconds: state.durationSeconds });
   }
 
   function setDisplayMode(mode: 'timer' | 'clock') {
@@ -86,26 +94,40 @@ export function NowPlaying({ state, sendCommand }: Props) {
         </div>
       )}
 
-      <div className="now-playing__transport">
-        {state.running ? (
-          <button className="btn btn--secondary" onClick={() => sendCommand({ type: 'pause' })}>
-            Pause
-          </button>
-        ) : (
-          <button
-            className="btn btn--primary"
-            onClick={() => sendCommand(isIdle ? { type: 'startCountUp' } : { type: 'resume' })}
-          >
-            {isIdle ? 'Play' : neverStarted ? 'Start' : 'Resume'}
-          </button>
-        )}
-        {hasNextBlock && (
-          <button className="btn btn--primary" onClick={() => sendCommand({ type: 'nextBlock' })}>
-            Next Block →
-          </button>
-        )}
-        <button className="btn btn--danger" disabled={isIdle} onClick={() => sendCommand({ type: 'reset' })}>
-          Reset
+      <h3>Presets</h3>
+      <div className="preset-grid">
+        {state.presets
+          .slice()
+          .sort((a, b) => a.durationSeconds - b.durationSeconds)
+          .map((p) => (
+            <button
+              key={p.id}
+              className="preset-chip"
+              title="Set this timer, then press Play"
+              onClick={() => sendCommand({ type: 'armQuick', durationSeconds: p.durationSeconds })}
+            >
+              {formatDuration(p.durationSeconds)}
+              <span
+                className="preset-chip__remove"
+                role="button"
+                tabIndex={-1}
+                title="Delete this preset"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  sendCommand({ type: 'deletePreset', id: p.id });
+                }}
+              >
+                ×
+              </span>
+            </button>
+          ))}
+        <button
+          className="preset-chip preset-chip--add"
+          disabled={!canSaveCurrent || alreadySaved}
+          title={alreadySaved ? 'Already saved' : 'Save the current timer length as a preset'}
+          onClick={saveCurrentAsPreset}
+        >
+          + Save current
         </button>
       </div>
 
@@ -177,6 +199,29 @@ export function NowPlaying({ state, sendCommand }: Props) {
           </div>
         </div>
       )}
+
+      <div className="now-playing__transport">
+        {state.running ? (
+          <button className="btn btn--secondary" onClick={() => sendCommand({ type: 'pause' })}>
+            Pause
+          </button>
+        ) : (
+          <button
+            className="btn btn--primary"
+            onClick={() => sendCommand(isIdle ? { type: 'startCountUp' } : { type: 'resume' })}
+          >
+            {isIdle ? 'Play' : neverStarted ? 'Start' : 'Resume'}
+          </button>
+        )}
+        {hasNextBlock && (
+          <button className="btn btn--primary" onClick={() => sendCommand({ type: 'nextBlock' })}>
+            Next Block →
+          </button>
+        )}
+        <button className="btn btn--danger" disabled={isIdle} onClick={() => sendCommand({ type: 'reset' })}>
+          Reset
+        </button>
+      </div>
     </section>
   );
 }

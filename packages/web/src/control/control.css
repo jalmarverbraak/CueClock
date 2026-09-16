@@ -11,6 +11,7 @@
   --danger: #ff5b52;
   --danger-bg: rgba(255, 91, 82, 0.14);
   --warning: #ffcc4d;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   height: 100vh;
   display: grid;
@@ -160,6 +161,7 @@
 }
 
 .dashboard__clock-time {
+  font-family: var(--font-mono);
   font-size: clamp(2.5rem, 5vw, 4rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -326,6 +328,7 @@
 .text-input--duration {
   flex: none;
   width: 5.5rem;
+  font-family: var(--font-mono);
 }
 
 /* ---- Toggle switch ---- */
@@ -513,6 +516,7 @@
 /* ---- Now Playing ---- */
 
 .now-playing__time {
+  font-family: var(--font-mono);
   font-size: clamp(3rem, 6vw, 4.5rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -530,6 +534,7 @@
 }
 
 .now-playing__ends-at {
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
@@ -584,6 +589,7 @@
   color: var(--text);
   border-radius: 8px;
   padding: 0.4rem 0.6rem;
+  font-family: var(--font-mono);
   font-size: 0.82rem;
 }
 
@@ -611,6 +617,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.9rem 0.3rem;
+  font-family: var(--font-mono);
   font-size: 1.05rem;
   font-weight: 700;
   cursor: pointer;
@@ -648,10 +655,10 @@
 }
 
 .preset-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  margin-top: 0.5rem;
+  margin: 0.75rem 0 1rem;
 }
 
 .preset-chip {
@@ -659,9 +666,10 @@
   background: var(--panel-bg-alt);
   border: 1px solid var(--border);
   color: var(--text);
-  border-radius: 12px;
-  padding: 0.8rem 0.5rem;
-  font-size: 0.95rem;
+  border-radius: 10px;
+  padding: 0.6rem 1.1rem;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
@@ -671,6 +679,21 @@
 .preset-chip:hover {
   border-color: var(--accent);
   color: var(--accent);
+}
+
+.preset-chip--add {
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border-style: dashed;
+}
+
+.preset-chip--add:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  border-color: var(--border);
+  color: var(--text-dim);
 }
 
 .preset-chip__remove {
@@ -817,9 +840,11 @@
 .text-input--time {
   flex: none;
   width: 6.5rem;
+  font-family: var(--font-mono);
 }
 
 .schedule-editor__computed-duration {
+  font-family: var(--font-mono);
   color: var(--text-dim);
   font-size: 0.85rem;
   font-variant-numeric: tabular-nums;
@@ -863,6 +888,11 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.83rem;
+}
+
+.rundown__table td:nth-child(3) {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .rundown__table th {
