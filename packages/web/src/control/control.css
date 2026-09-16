@@ -559,11 +559,6 @@
   margin-bottom: 1rem;
 }
 
-.now-playing__hint {
-  color: var(--text-dim);
-  font-size: 0.9rem;
-}
-
 .now-playing__row {
   margin-top: 0.75rem;
 }

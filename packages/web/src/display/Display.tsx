@@ -60,9 +60,13 @@ export function Display() {
     document.documentElement.requestFullscreen?.().catch(() => undefined);
   }
 
-  const colorState = keyFill ? 'normal' : state?.colorState ?? 'normal';
   const showClock = displaySettings?.mode === 'clock';
-  const flashing = !keyFill && colorState === 'overtime' && displaySettings?.flashOnOvertime;
+  // The clock reading is its own thing, not a timer readout - it never takes the running
+  // timer's warning/critical/overtime color or flash, even while that timer is overtime.
+  const colorState = keyFill || showClock ? 'normal' : state?.colorState ?? 'normal';
+  const flashing = !keyFill && !showClock && colorState === 'overtime' && displaySettings?.flashOnOvertime;
+  const isCountUp = state?.mode === 'countup';
+  const timerSeconds = isCountUp ? Math.abs(state?.remainingSeconds ?? 0) : state?.remainingSeconds ?? 0;
 
   const timeBelowVisible = !!displaySettings && !showClock && displaySettings.showTimeBelow;
   // If both readouts share a position they'd otherwise stack directly on top of each other
@@ -96,7 +100,7 @@ export function Display() {
           style={textStyleVars(displaySettings.timerStyle, !keyFill)}
         >
           <div className={`display__timer ${flashing ? 'display__timer--flash' : ''}`}>
-            {showClock ? formatClock(now) : formatDuration(state?.remainingSeconds ?? 0)}
+            {showClock ? formatClock(now) : formatDuration(timerSeconds)}
           </div>
           {!showClock && displaySettings.showBlockName && activeBlock && (
             <div className="display__block-name">{activeBlock.name}</div>

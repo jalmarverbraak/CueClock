@@ -11,7 +11,7 @@ export interface BlockProjection {
 }
 
 export interface CueClockState {
-	mode: 'idle' | 'quick' | 'block'
+	mode: 'idle' | 'quick' | 'block' | 'countup'
 	running: boolean
 	speedPercent: number
 	remainingSeconds: number
