@@ -333,6 +333,28 @@ describe('display settings', () => {
     expect(updated.showTimeBelow).toBe(true);
     expect(engine.getPersistedState().displaySettings.mode).toBe('clock');
   });
+
+  it('fills in missing fields from an older persisted shape with current defaults', () => {
+    // Simulates data saved by an earlier version of the app, before timerStyle/showNextBlock/etc existed.
+    const engine = new Engine(() => T0, {
+      displaySettings: { mode: 'timer', showBlockName: true, showTimeBelow: false } as never,
+    });
+    const settings = engine.getState(T0).displaySettings;
+    expect(settings.timerStyle).toEqual({ fontFamily: 'system', color: 'auto', sizePercent: 100, position: 'center' });
+    expect(settings.timeBelowStyle.position).toBe('bottom-center');
+    expect(settings.showNextBlock).toBe(true);
+    expect(settings.flashOnOvertime).toBe(false);
+  });
+
+  it('fills in missing style sub-fields even when a partial style object is sent', () => {
+    const engine = new Engine(() => T0);
+    const base = engine.getState(T0).displaySettings;
+    engine.setDisplaySettings({ ...base, timerStyle: { color: '#ff0000' } as never });
+    const settings = engine.getState(T0).displaySettings;
+    expect(settings.timerStyle.color).toBe('#ff0000');
+    expect(settings.timerStyle.fontFamily).toBe('system');
+    expect(settings.timerStyle.position).toBe('center');
+  });
 });
 
 describe('schedule block time anchors', () => {

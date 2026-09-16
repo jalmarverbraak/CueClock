@@ -1,16 +1,29 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { DISPLAY_FONT_FAMILIES, type DisplayTextStyle } from '@cueclock/shared';
+import { DISPLAY_FONT_FAMILIES, type DisplayFontFamily, type DisplayTextStyle } from '@cueclock/shared';
 import { useEngineSocket } from '../shared/useEngineSocket';
 import { formatClock, formatDuration } from '../shared/format';
 import './display.css';
 
-function fontCss(id: DisplayTextStyle['fontFamily']): string {
-  return DISPLAY_FONT_FAMILIES.find((f) => f.id === id)?.css ?? DISPLAY_FONT_FAMILIES[0].css;
+function fontDef(id: DisplayFontFamily) {
+  return DISPLAY_FONT_FAMILIES.find((f) => f.id === id) ?? DISPLAY_FONT_FAMILIES[0];
+}
+
+const loadedGoogleFonts = new Set<string>();
+
+/** Injects a Google Fonts <link> the first time a given font is actually selected. No-ops for system fonts. */
+function ensureGoogleFontLoaded(id: DisplayFontFamily) {
+  const def = fontDef(id);
+  if (def.source !== 'google' || loadedGoogleFonts.has(def.googleFamily)) return;
+  loadedGoogleFonts.add(def.googleFamily);
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${def.googleFamily.replace(/ /g, '+')}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
 }
 
 function textStyleVars(style: DisplayTextStyle, colorOverride: boolean): CSSProperties {
   return {
-    fontFamily: fontCss(style.fontFamily),
+    fontFamily: fontDef(style.fontFamily).css,
     ...(colorOverride && style.color !== 'auto' ? { color: style.color } : {}),
     ['--scale' as string]: style.sizePercent / 100,
   };
@@ -26,6 +39,14 @@ export function Display() {
     return () => clearInterval(id);
   }, []);
 
+  const displaySettings = state?.displaySettings;
+
+  useEffect(() => {
+    if (!displaySettings) return;
+    ensureGoogleFontLoaded(displaySettings.timerStyle.fontFamily);
+    ensureGoogleFontLoaded(displaySettings.timeBelowStyle.fontFamily);
+  }, [displaySettings?.timerStyle.fontFamily, displaySettings?.timeBelowStyle.fontFamily]);
+
   const nextBlock = useMemo(
     () => state?.blockProjections.find((b) => b.status === 'upcoming') ?? null,
     [state],
@@ -39,9 +60,9 @@ export function Display() {
     document.documentElement.requestFullscreen?.().catch(() => undefined);
   }
 
-  const displaySettings = state?.displaySettings;
   const colorState = keyFill ? 'normal' : state?.colorState ?? 'normal';
   const showClock = displaySettings?.mode === 'clock';
+  const flashing = !keyFill && colorState === 'overtime' && displaySettings?.flashOnOvertime;
 
   return (
     <div
@@ -59,11 +80,16 @@ export function Display() {
           className={`display__timer-wrap pos-${displaySettings.timerStyle.position}`}
           style={textStyleVars(displaySettings.timerStyle, !keyFill)}
         >
-          <div className="display__timer">
+          <div className={`display__timer ${flashing ? 'display__timer--flash' : ''}`}>
             {showClock ? formatClock(now) : formatDuration(state?.remainingSeconds ?? 0)}
           </div>
           {!showClock && displaySettings.showBlockName && activeBlock && (
             <div className="display__block-name">{activeBlock.name}</div>
+          )}
+          {!showClock && displaySettings.showNextBlock && nextBlock && (
+            <div className="display__next">
+              Next: {nextBlock.name} ({formatDuration(nextBlock.durationSeconds)})
+            </div>
           )}
         </div>
       )}
@@ -78,12 +104,6 @@ export function Display() {
       )}
 
       {state?.message && <div className="display__message">{state.message}</div>}
-
-      {!showClock && nextBlock && (
-        <div className="display__next">
-          Next: {nextBlock.name} ({formatDuration(nextBlock.durationSeconds)})
-        </div>
-      )}
 
       <button
         className="display__keyfill-toggle"

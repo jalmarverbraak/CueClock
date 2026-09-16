@@ -72,12 +72,77 @@ export type DisplayPosition =
   | 'bottom-center'
   | 'bottom-right';
 
+/**
+ * 'system' fonts render with zero network dependency (important - this app runs at live
+ * events where the venue may have no internet). 'google' fonts are loaded on demand from
+ * Google Fonts by whichever client (Display) actually selects one; if that fails/is
+ * offline, the browser falls back to the trailing generic family in `css`.
+ */
 export const DISPLAY_FONT_FAMILIES = [
-  { id: 'system', label: 'System Default', css: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
-  { id: 'mono', label: 'Monospace', css: "'SF Mono', 'Consolas', 'Menlo', monospace" },
-  { id: 'condensed', label: 'Condensed', css: "'Arial Narrow', 'Helvetica Neue Condensed', sans-serif" },
-  { id: 'serif', label: 'Serif', css: "Georgia, 'Times New Roman', serif" },
-  { id: 'impact', label: 'Impact / Display', css: "Impact, Haettenschweiler, 'Arial Black', sans-serif" },
+  { id: 'system', label: 'System Default', source: 'system', css: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+  { id: 'mono', label: 'Monospace', source: 'system', css: "'SF Mono', 'Consolas', 'Menlo', monospace" },
+  { id: 'condensed', label: 'Condensed', source: 'system', css: "'Arial Narrow', 'Helvetica Neue Condensed', sans-serif" },
+  { id: 'serif', label: 'Serif', source: 'system', css: "Georgia, 'Times New Roman', serif" },
+  { id: 'impact', label: 'Impact / Display', source: 'system', css: "Impact, Haettenschweiler, 'Arial Black', sans-serif" },
+  { id: 'verdana', label: 'Verdana', source: 'system', css: 'Verdana, Geneva, sans-serif' },
+  { id: 'trebuchet', label: 'Trebuchet MS', source: 'system', css: "'Trebuchet MS', sans-serif" },
+  { id: 'courier', label: 'Courier', source: 'system', css: "'Courier New', Courier, monospace" },
+  {
+    id: 'google-roboto-mono',
+    label: 'Roboto Mono (Google)',
+    source: 'google',
+    googleFamily: 'Roboto Mono',
+    css: "'Roboto Mono', 'SF Mono', monospace",
+  },
+  {
+    id: 'google-oswald',
+    label: 'Oswald (Google)',
+    source: 'google',
+    googleFamily: 'Oswald',
+    css: "'Oswald', 'Arial Narrow', sans-serif",
+  },
+  {
+    id: 'google-bebas-neue',
+    label: 'Bebas Neue (Google)',
+    source: 'google',
+    googleFamily: 'Bebas Neue',
+    css: "'Bebas Neue', Impact, sans-serif",
+  },
+  {
+    id: 'google-anton',
+    label: 'Anton (Google)',
+    source: 'google',
+    googleFamily: 'Anton',
+    css: "'Anton', Impact, sans-serif",
+  },
+  {
+    id: 'google-archivo-black',
+    label: 'Archivo Black (Google)',
+    source: 'google',
+    googleFamily: 'Archivo Black',
+    css: "'Archivo Black', 'Arial Black', sans-serif",
+  },
+  {
+    id: 'google-teko',
+    label: 'Teko (Google)',
+    source: 'google',
+    googleFamily: 'Teko',
+    css: "'Teko', 'Arial Narrow', sans-serif",
+  },
+  {
+    id: 'google-orbitron',
+    label: 'Orbitron (Google)',
+    source: 'google',
+    googleFamily: 'Orbitron',
+    css: "'Orbitron', 'SF Mono', monospace",
+  },
+  {
+    id: 'google-barlow-condensed',
+    label: 'Barlow Condensed (Google)',
+    source: 'google',
+    googleFamily: 'Barlow Condensed',
+    css: "'Barlow Condensed', 'Arial Narrow', sans-serif",
+  },
 ] as const;
 
 export type DisplayFontFamily = (typeof DISPLAY_FONT_FAMILIES)[number]['id'];
@@ -98,6 +163,10 @@ export interface DisplaySettings {
   showBlockName: boolean;
   /** Whether the current time of day is shown below the timer (only relevant when mode is 'timer'). */
   showTimeBelow: boolean;
+  /** Whether the upcoming block's name/duration is shown, directly under the active block name. */
+  showNextBlock: boolean;
+  /** Whether the timer visually flashes (pulses) once it goes into overtime. Off by default - text still turns red either way. */
+  flashOnOvertime: boolean;
   /** Style/position for the main readout (timer or clock, whichever is showing). */
   timerStyle: DisplayTextStyle;
   /** Style/position for the small time-of-day readout below the timer. */
@@ -122,9 +191,21 @@ export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   mode: 'timer',
   showBlockName: true,
   showTimeBelow: false,
+  showNextBlock: true,
+  flashOnOvertime: false,
   timerStyle: { ...DEFAULT_TIMER_STYLE },
   timeBelowStyle: { ...DEFAULT_TIME_BELOW_STYLE },
 };
+
+/** Fills in any missing fields (from an older persisted shape) with current defaults, so adding new DisplaySettings fields later never breaks an existing installation. */
+export function normalizeDisplaySettings(input: Partial<DisplaySettings> | undefined | null): DisplaySettings {
+  return {
+    ...DEFAULT_DISPLAY_SETTINGS,
+    ...input,
+    timerStyle: { ...DEFAULT_TIMER_STYLE, ...input?.timerStyle },
+    timeBelowStyle: { ...DEFAULT_TIME_BELOW_STYLE, ...input?.timeBelowStyle },
+  };
+}
 
 export interface QuickMessage {
   id: string;

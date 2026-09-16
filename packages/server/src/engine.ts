@@ -11,7 +11,7 @@ import type {
   BlockProjection,
   TimerMode,
 } from '@cueclock/shared';
-import { DEFAULT_THRESHOLDS, DEFAULT_DISPLAY_SETTINGS } from '@cueclock/shared';
+import { DEFAULT_THRESHOLDS, normalizeDisplaySettings } from '@cueclock/shared';
 
 export class EngineError extends Error {}
 
@@ -69,7 +69,7 @@ export class Engine {
     this.quickMessages = persisted?.quickMessages ?? [];
     this.schedules = persisted?.schedules ?? [];
     this.thresholds = persisted?.thresholds ?? { ...DEFAULT_THRESHOLDS };
-    this.displaySettings = persisted?.displaySettings ?? { ...DEFAULT_DISPLAY_SETTINGS };
+    this.displaySettings = normalizeDisplaySettings(persisted?.displaySettings);
   }
 
   getPersistedState(): EnginePersistedState {
@@ -276,7 +276,7 @@ export class Engine {
   }
 
   setDisplaySettings(settings: DisplaySettings) {
-    this.displaySettings = settings;
+    this.displaySettings = normalizeDisplaySettings(settings);
   }
 
   // ---- library management (presets / quick messages / schedules) ----
