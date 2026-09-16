@@ -54,7 +54,7 @@ export function Control() {
           <div className="dashboard">
             <div className="dashboard__main">
               <div className="dashboard__clock">
-                <div className="dashboard__clock-time">{formatClock(now)}</div>
+                <div className="dashboard__clock-time">{formatClock(now, { seconds: true })}</div>
                 <div className="dashboard__clock-label">Current Time</div>
               </div>
               <NowPlaying state={state} sendCommand={sendCommand} />

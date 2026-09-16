@@ -316,17 +316,75 @@ describe('display settings', () => {
   it('defaults to timer mode with block name shown and time-below hidden', () => {
     const engine = new Engine(() => T0);
     const settings = engine.getState(T0).displaySettings;
-    expect(settings).toEqual({ mode: 'timer', showBlockName: true, showTimeBelow: false });
+    expect(settings.mode).toBe('timer');
+    expect(settings.showBlockName).toBe(true);
+    expect(settings.showTimeBelow).toBe(false);
+    expect(settings.timerStyle.position).toBe('center');
+    expect(settings.timeBelowStyle.position).toBe('bottom-center');
   });
 
   it('persists updated display settings', () => {
     const engine = new Engine(() => T0);
-    engine.setDisplaySettings({ mode: 'clock', showBlockName: false, showTimeBelow: true });
-    expect(engine.getState(T0).displaySettings).toEqual({
-      mode: 'clock',
-      showBlockName: false,
-      showTimeBelow: true,
-    });
+    const base = engine.getState(T0).displaySettings;
+    engine.setDisplaySettings({ ...base, mode: 'clock', showBlockName: false, showTimeBelow: true });
+    const updated = engine.getState(T0).displaySettings;
+    expect(updated.mode).toBe('clock');
+    expect(updated.showBlockName).toBe(false);
+    expect(updated.showTimeBelow).toBe(true);
     expect(engine.getPersistedState().displaySettings.mode).toBe('clock');
+  });
+});
+
+describe('schedule block time anchors', () => {
+  function scheduleWithAnchor() {
+    const engine = new Engine(() => T0);
+    // T0 is an arbitrary instant; resolve what "09:00 today" means relative to it so the math is self-consistent.
+    const nineAm = new Date(T0);
+    nineAm.setHours(9, 0, 0, 0);
+    const startTimeMinutes = 9 * 60;
+    const schedule = engine.saveSchedule({
+      id: '',
+      name: 'Anchored',
+      blocks: [
+        { id: '', name: 'Opening', durationSeconds: 300, startTimeMinutes, endTimeMinutes: null },
+        { id: '', name: 'Keynote', durationSeconds: 600, startTimeMinutes: null, endTimeMinutes: null },
+      ],
+    });
+    return { engine, schedule, anchorMs: nineAm.getTime() };
+  }
+
+  it('reports zero delay when a block starts exactly at its anchor', () => {
+    const { engine, schedule, anchorMs } = scheduleWithAnchor();
+    engine.startSchedule(schedule.id, anchorMs);
+    const projections = engine.getState(anchorMs).blockProjections;
+    expect(projections[0].anchoredStartMs).toBe(anchorMs);
+    expect(projections[0].delaySeconds).toBe(0);
+  });
+
+  it('reports a positive delay when a block starts late relative to its anchor', () => {
+    const { engine, schedule, anchorMs } = scheduleWithAnchor();
+    const lateStart = anchorMs + 10 * 60 * 1000;
+    engine.startSchedule(schedule.id, lateStart);
+    const projections = engine.getState(lateStart).blockProjections;
+    expect(projections[0].delaySeconds).toBeCloseTo(600, 5);
+  });
+
+  it('has no delay for blocks without an anchor', () => {
+    const { engine, schedule, anchorMs } = scheduleWithAnchor();
+    engine.startSchedule(schedule.id, anchorMs);
+    const projections = engine.getState(anchorMs).blockProjections;
+    expect(projections[1].anchoredStartMs).toBeNull();
+    expect(projections[1].delaySeconds).toBeNull();
+  });
+
+  it('rejects an out-of-range time anchor', () => {
+    const engine = new Engine(() => T0);
+    expect(() =>
+      engine.saveSchedule({
+        id: '',
+        name: 'Bad',
+        blocks: [{ id: '', name: 'A', durationSeconds: 60, startTimeMinutes: 1500, endTimeMinutes: null }],
+      }),
+    ).toThrow(EngineError);
   });
 });
