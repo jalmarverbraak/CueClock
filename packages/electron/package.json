@@ -1,19 +1,24 @@
 {
   "name": "@cueclock/electron",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "CueClock desktop app - control panel and fullscreen output display",
-  "author": "Webinary Media",
+  "author": {
+    "name": "Webinary Media",
+    "email": "jalmar@webinary.nl"
+  },
+  "homepage": "https://github.com/Webinary-Media/tijd-voor-timer",
   "main": "dist/main.js",
   "scripts": {
     "prepare-vendor": "node scripts/prepare-vendor.js",
-    "build": "npm run prepare-vendor && tsc -p tsconfig.json",
+    "build": "npm run prepare-vendor && tsc -p tsconfig.json --noEmit",
     "start": "electron .",
     "dist": "electron-builder"
   },
   "dependencies": {
     "@cueclock/server": "0.1.0",
-    "@cueclock/shared": "0.1.0"
+    "@cueclock/shared": "0.1.0",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@types/node": "^22.7.5",
@@ -25,11 +30,18 @@
   "build": {
     "appId": "nl.webinary.cueclock",
     "productName": "CueClock",
-    "files": ["dist/**/*", "vendor/**/*", "package.json"],
+    "executableName": "cueclock",
+    "files": [
+      "dist/**/*",
+      "vendor/**/*",
+      "package.json",
+      "!node_modules/**/*"
+    ],
     "directories": {
       "output": "release"
     },
     "electronVersion": "32.3.3",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
     "publish": {
       "provider": "github",
       "owner": "Webinary-Media",
@@ -43,7 +55,10 @@
       "target": "nsis"
     },
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "category": "Utility"
     }
   }
