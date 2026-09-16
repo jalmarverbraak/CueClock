@@ -4,6 +4,12 @@ import path from 'node:path';
 
 export default defineConfig({
   plugins: [react()],
+  // @cueclock/shared is a symlinked workspace package built as CommonJS; without this,
+  // Vite/Rollup resolve past the symlink to its real path (outside node_modules), which
+  // skips the commonjs interop transform and drops its named exports during production build.
+  resolve: {
+    preserveSymlinks: true,
+  },
   server: {
     port: 5173,
     proxy: {

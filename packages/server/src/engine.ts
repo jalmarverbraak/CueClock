@@ -309,10 +309,19 @@ export class Engine {
     if (schedule.blocks.some((b) => b.durationSeconds <= 0)) {
       throw new EngineError('All blocks must have a positive duration');
     }
+    const isValidAnchor = (m: number | null | undefined) => m == null || (m >= 0 && m < 1440);
+    if (schedule.blocks.some((b) => !isValidAnchor(b.startTimeMinutes) || !isValidAnchor(b.endTimeMinutes))) {
+      throw new EngineError('Block start/end time must be between 00:00 and 23:59');
+    }
     const withIds: Schedule = {
       id: schedule.id || nanoid(8),
       name: schedule.name.trim(),
-      blocks: schedule.blocks.map((b) => ({ ...b, id: b.id || nanoid(8) })),
+      blocks: schedule.blocks.map((b) => ({
+        ...b,
+        id: b.id || nanoid(8),
+        startTimeMinutes: b.startTimeMinutes ?? null,
+        endTimeMinutes: b.endTimeMinutes ?? null,
+      })),
     };
     const idx = this.schedules.findIndex((s) => s.id === withIds.id);
     if (idx === -1) this.schedules.push(withIds);
@@ -338,22 +347,38 @@ export class Engine {
     return 'normal';
   }
 
+  /** Resolves a "minutes since midnight" anchor to today's actual wall-clock ms, relative to `now`. */
+  private resolveAnchor(minutes: number | null, now: number): number | null {
+    if (minutes === null) return null;
+    const d = new Date(now);
+    d.setHours(Math.floor(minutes / 60), minutes % 60, 0, 0);
+    return d.getTime();
+  }
+
   private computeProjections(now: number): BlockProjection[] {
     if (!this.activeSchedule || this.activeBlockIndex === null) return [];
     const result: BlockProjection[] = [];
     let cursor: number | null = null;
 
     this.activeSchedule.blocks.forEach((block: ScheduleBlock, idx: number) => {
+      const anchoredStartMs = this.resolveAnchor(block.startTimeMinutes ?? null, now);
+
       if (idx < this.activeBlockIndex!) {
         const done = this.completedBlocks[idx];
+        const projectedStartMs = done?.startedAtMs ?? null;
         result.push({
           blockId: block.id,
           name: block.name,
           durationSeconds: block.durationSeconds,
           status: 'done',
           actualElapsedSeconds: done?.actualElapsedSeconds ?? block.durationSeconds,
-          projectedStartMs: done?.startedAtMs ?? null,
+          projectedStartMs,
           projectedEndMs: done?.endedAtMs ?? null,
+          anchoredStartMs,
+          delaySeconds:
+            anchoredStartMs !== null && projectedStartMs !== null
+              ? (projectedStartMs - anchoredStartMs) / 1000
+              : null,
         });
         cursor = done?.endedAtMs ?? cursor;
       } else if (idx === this.activeBlockIndex) {
@@ -372,6 +397,8 @@ export class Engine {
           actualElapsedSeconds: (now - startedAt) / 1000,
           projectedStartMs: startedAt,
           projectedEndMs,
+          anchoredStartMs,
+          delaySeconds: anchoredStartMs !== null ? (startedAt - anchoredStartMs) / 1000 : null,
         });
         cursor = projectedEndMs;
       } else {
@@ -385,6 +412,11 @@ export class Engine {
           actualElapsedSeconds: null,
           projectedStartMs,
           projectedEndMs,
+          anchoredStartMs,
+          delaySeconds:
+            anchoredStartMs !== null && projectedStartMs !== null
+              ? (projectedStartMs - anchoredStartMs) / 1000
+              : null,
         });
         cursor = projectedEndMs;
       }

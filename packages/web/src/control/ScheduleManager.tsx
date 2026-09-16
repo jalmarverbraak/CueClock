@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { nanoid } from 'nanoid';
 import type { Command, EngineState, Schedule, ScheduleBlock } from '@cueclock/shared';
-import { formatClock, formatDuration, formatOffset, parseDurationInput } from '../shared/format';
+import {
+  formatClock,
+  formatDelay,
+  formatDuration,
+  formatOffset,
+  minutesToTimeInput,
+  parseDurationInput,
+  resolveNextOccurrence,
+  timeInputToMinutes,
+} from '../shared/format';
 
 interface Props {
   state: EngineState;
@@ -9,7 +18,7 @@ interface Props {
 }
 
 function blankBlock(): ScheduleBlock {
-  return { id: nanoid(8), name: '', durationSeconds: 300 };
+  return { id: nanoid(8), name: '', durationSeconds: 300, startTimeMinutes: null, endTimeMinutes: null };
 }
 
 function totalDuration(schedule: Schedule): number {
@@ -53,27 +62,42 @@ export function ScheduleManager({ state, sendCommand }: Props) {
           )}
 
           {!editing &&
-            state.schedules.map((s) => (
-              <div key={s.id} className="schedule-row">
-                <div className="schedule-row__info">
-                  <strong>{s.name}</strong>
-                  <span>
-                    {s.blocks.length} block{s.blocks.length === 1 ? '' : 's'} · {formatDuration(totalDuration(s))}
-                  </span>
+            state.schedules.map((s) => {
+              const firstStart = s.blocks[0]?.startTimeMinutes ?? null;
+              const secondsUntilStart =
+                firstStart !== null ? Math.round((resolveNextOccurrence(firstStart, Date.now()) - Date.now()) / 1000) : null;
+              return (
+                <div key={s.id} className="schedule-row">
+                  <div className="schedule-row__info">
+                    <strong>{s.name}</strong>
+                    <span>
+                      {s.blocks.length} block{s.blocks.length === 1 ? '' : 's'} · {formatDuration(totalDuration(s))}
+                      {firstStart !== null && <> · starts {minutesToTimeInput(firstStart)}</>}
+                    </span>
+                  </div>
+                  <div className="schedule-row__actions">
+                    {secondsUntilStart !== null && secondsUntilStart > 0 && (
+                      <button
+                        className="btn btn--chip"
+                        title={`Start a live countdown to ${minutesToTimeInput(firstStart!)}`}
+                        onClick={() => sendCommand({ type: 'startQuick', durationSeconds: secondsUntilStart })}
+                      >
+                        Countdown to {minutesToTimeInput(firstStart!)}
+                      </button>
+                    )}
+                    <button className="btn btn--primary" onClick={() => sendCommand({ type: 'startSchedule', scheduleId: s.id })}>
+                      Start
+                    </button>
+                    <button className="btn btn--chip" onClick={() => setEditing(s)}>
+                      Edit
+                    </button>
+                    <button className="btn btn--chip" onClick={() => sendCommand({ type: 'deleteSchedule', id: s.id })}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="schedule-row__actions">
-                  <button className="btn btn--primary" onClick={() => sendCommand({ type: 'startSchedule', scheduleId: s.id })}>
-                    Start
-                  </button>
-                  <button className="btn btn--chip" onClick={() => setEditing(s)}>
-                    Edit
-                  </button>
-                  <button className="btn btn--chip" onClick={() => sendCommand({ type: 'deleteSchedule', id: s.id })}>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
         </div>
 
         {editing && (
@@ -100,21 +124,26 @@ function RunningRundown({ state, sendCommand }: Props) {
         <thead>
           <tr>
             <th>Block</th>
-            <th>Planned</th>
             <th>Status</th>
-            <th>Start</th>
-            <th>End</th>
+            <th>Start → End</th>
             <th />
           </tr>
         </thead>
         <tbody>
           {state.blockProjections.map((b) => (
             <tr key={b.blockId} className={`rundown__row rundown__row--${b.status}`}>
-              <td>{b.name}</td>
-              <td>{formatDuration(b.durationSeconds)}</td>
+              <td>
+                {b.name}
+                {b.delaySeconds !== null && (
+                  <div className={`rundown__delay ${b.delaySeconds > 30 ? 'late' : b.delaySeconds < -30 ? 'early' : ''}`}>
+                    {formatDelay(b.delaySeconds)}
+                  </div>
+                )}
+              </td>
               <td>{b.status}</td>
-              <td>{formatClock(b.projectedStartMs)}</td>
-              <td>{formatClock(b.projectedEndMs)}</td>
+              <td>
+                {formatClock(b.projectedStartMs)} → {formatClock(b.projectedEndMs)}
+              </td>
               <td>
                 {b.status !== 'active' && state.activeSchedule && (
                   <button
@@ -123,7 +152,7 @@ function RunningRundown({ state, sendCommand }: Props) {
                       sendCommand({ type: 'startBlock', scheduleId: state.activeSchedule!.id, blockId: b.blockId })
                     }
                   >
-                    Jump here
+                    Jump
                   </button>
                 )}
               </td>
@@ -133,6 +162,15 @@ function RunningRundown({ state, sendCommand }: Props) {
       </table>
     </div>
   );
+}
+
+type TimeMode = 'duration' | 'start-duration' | 'start-end' | 'end-duration';
+
+function modeOf(block: ScheduleBlock): TimeMode {
+  if (block.startTimeMinutes !== null && block.endTimeMinutes !== null) return 'start-end';
+  if (block.startTimeMinutes !== null) return 'start-duration';
+  if (block.endTimeMinutes !== null) return 'end-duration';
+  return 'duration';
 }
 
 function ScheduleEditor({
@@ -149,6 +187,31 @@ function ScheduleEditor({
   function updateBlock(index: number, patch: Partial<ScheduleBlock>) {
     const blocks = schedule.blocks.map((b, i) => (i === index ? { ...b, ...patch } : b));
     onChange({ ...schedule, blocks });
+  }
+
+  function setMode(index: number, mode: TimeMode) {
+    const block = schedule.blocks[index];
+    switch (mode) {
+      case 'duration':
+        updateBlock(index, { startTimeMinutes: null, endTimeMinutes: null });
+        break;
+      case 'start-duration':
+        updateBlock(index, { startTimeMinutes: block.startTimeMinutes ?? 0, endTimeMinutes: null });
+        break;
+      case 'end-duration':
+        updateBlock(index, { startTimeMinutes: null, endTimeMinutes: block.endTimeMinutes ?? 0 });
+        break;
+      case 'start-end': {
+        const start = block.startTimeMinutes ?? 0;
+        const end = block.endTimeMinutes ?? (start + Math.round(block.durationSeconds / 60)) % 1440;
+        updateBlock(index, {
+          startTimeMinutes: start,
+          endTimeMinutes: end,
+          durationSeconds: (((end - start + 1440) % 1440) || 1440) * 60,
+        });
+        break;
+      }
+    }
   }
 
   function removeBlock(index: number) {
@@ -174,34 +237,91 @@ function ScheduleEditor({
         onChange={(e) => onChange({ ...schedule, name: e.target.value })}
       />
 
-      {schedule.blocks.map((block, i) => (
-        <div key={block.id} className="schedule-editor__block">
-          <input
-            className="text-input"
-            placeholder="Block name"
-            value={block.name}
-            onChange={(e) => updateBlock(i, { name: e.target.value })}
-          />
-          <input
-            className="text-input text-input--duration"
-            placeholder="mm:ss"
-            defaultValue={formatDuration(block.durationSeconds)}
-            onBlur={(e) => {
-              const parsed = parseDurationInput(e.target.value);
-              if (parsed !== null && parsed > 0) updateBlock(i, { durationSeconds: parsed });
-            }}
-          />
-          <button className="btn btn--chip" disabled={i === 0} onClick={() => move(i, -1)}>
-            ↑
-          </button>
-          <button className="btn btn--chip" disabled={i === schedule.blocks.length - 1} onClick={() => move(i, 1)}>
-            ↓
-          </button>
-          <button className="chip-with-delete__remove" onClick={() => removeBlock(i)}>
-            ×
-          </button>
-        </div>
-      ))}
+      {schedule.blocks.map((block, i) => {
+        const mode = modeOf(block);
+        return (
+          <div key={block.id} className="schedule-editor__block">
+            <div className="schedule-editor__block-row">
+              <input
+                className="text-input"
+                placeholder="Block name"
+                value={block.name}
+                onChange={(e) => updateBlock(i, { name: e.target.value })}
+              />
+              <button className="btn btn--chip" disabled={i === 0} onClick={() => move(i, -1)}>
+                ↑
+              </button>
+              <button className="btn btn--chip" disabled={i === schedule.blocks.length - 1} onClick={() => move(i, 1)}>
+                ↓
+              </button>
+              <button className="chip-with-delete__remove" onClick={() => removeBlock(i)}>
+                ×
+              </button>
+            </div>
+
+            <div className="schedule-editor__time-mode">
+              <select className="text-input text-input--mode" value={mode} onChange={(e) => setMode(i, e.target.value as TimeMode)}>
+                <option value="duration">Duration only</option>
+                <option value="start-duration">Start time + duration</option>
+                <option value="start-end">Start time + end time</option>
+                <option value="end-duration">End time + duration</option>
+              </select>
+
+              {(mode === 'start-duration' || mode === 'start-end') && (
+                <input
+                  className="text-input text-input--time"
+                  type="time"
+                  value={minutesToTimeInput(block.startTimeMinutes)}
+                  onChange={(e) => {
+                    const mins = timeInputToMinutes(e.target.value);
+                    if (mins === null) return;
+                    if (mode === 'start-end') {
+                      const end = block.endTimeMinutes ?? mins;
+                      updateBlock(i, { startTimeMinutes: mins, durationSeconds: (((end - mins + 1440) % 1440) || 1440) * 60 });
+                    } else {
+                      updateBlock(i, { startTimeMinutes: mins });
+                    }
+                  }}
+                />
+              )}
+
+              {(mode === 'end-duration' || mode === 'start-end') && (
+                <input
+                  className="text-input text-input--time"
+                  type="time"
+                  value={minutesToTimeInput(block.endTimeMinutes)}
+                  onChange={(e) => {
+                    const mins = timeInputToMinutes(e.target.value);
+                    if (mins === null) return;
+                    if (mode === 'start-end') {
+                      const start = block.startTimeMinutes ?? mins;
+                      updateBlock(i, { endTimeMinutes: mins, durationSeconds: (((mins - start + 1440) % 1440) || 1440) * 60 });
+                    } else {
+                      updateBlock(i, { endTimeMinutes: mins });
+                    }
+                  }}
+                />
+              )}
+
+              {mode !== 'start-end' && (
+                <input
+                  className="text-input text-input--duration"
+                  placeholder="mm:ss"
+                  defaultValue={formatDuration(block.durationSeconds)}
+                  onBlur={(e) => {
+                    const parsed = parseDurationInput(e.target.value);
+                    if (parsed !== null && parsed > 0) updateBlock(i, { durationSeconds: parsed });
+                  }}
+                />
+              )}
+
+              {mode === 'start-end' && (
+                <span className="schedule-editor__computed-duration">= {formatDuration(block.durationSeconds)}</span>
+              )}
+            </div>
+          </div>
+        );
+      })}
 
       <div className="schedule-editor__actions">
         <button className="btn btn--secondary" onClick={() => onChange({ ...schedule, blocks: [...schedule.blocks, blankBlock()] })}>

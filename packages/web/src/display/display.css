@@ -1,10 +1,9 @@
 .display {
   height: 100vh;
   width: 100vw;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
   background: #05070a;
   color: #f2f2f2;
   transition: background-color 0.4s ease, color 0.4s ease;
@@ -12,6 +11,28 @@
   position: relative;
   cursor: default;
 }
+
+.pos-top-left,
+.pos-top-center,
+.pos-top-right,
+.pos-center-left,
+.pos-center,
+.pos-center-right,
+.pos-bottom-left,
+.pos-bottom-center,
+.pos-bottom-right {
+  padding: 4%;
+}
+
+.pos-top-left { grid-column: 1; grid-row: 1; justify-self: start; align-self: start; text-align: left; align-items: flex-start; }
+.pos-top-center { grid-column: 2; grid-row: 1; justify-self: center; align-self: start; text-align: center; align-items: center; }
+.pos-top-right { grid-column: 3; grid-row: 1; justify-self: end; align-self: start; text-align: right; align-items: flex-end; }
+.pos-center-left { grid-column: 1; grid-row: 2; justify-self: start; align-self: center; text-align: left; align-items: flex-start; }
+.pos-center { grid-column: 2; grid-row: 2; justify-self: center; align-self: center; text-align: center; align-items: center; }
+.pos-center-right { grid-column: 3; grid-row: 2; justify-self: end; align-self: center; text-align: right; align-items: flex-end; }
+.pos-bottom-left { grid-column: 1; grid-row: 3; justify-self: start; align-self: end; text-align: left; align-items: flex-start; }
+.pos-bottom-center { grid-column: 2; grid-row: 3; justify-self: center; align-self: end; text-align: center; align-items: center; }
+.pos-bottom-right { grid-column: 3; grid-row: 3; justify-self: end; align-self: end; text-align: right; align-items: flex-end; }
 
 .display--warning {
   color: #ffcc4d;
@@ -30,15 +51,15 @@
   color: #ffffff;
 }
 
-.display__main {
+.display__timer-wrap {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 0.5vh;
+  min-width: 0;
 }
 
 .display__timer {
-  font-size: clamp(6rem, 22vw, 22rem);
+  font-size: calc(clamp(6rem, 22vw, 22rem) * var(--scale, 1));
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -46,15 +67,13 @@
 }
 
 .display__time-below {
-  font-size: clamp(1.25rem, 3vw, 2.5rem);
-  opacity: 0.6;
+  font-size: calc(clamp(1.25rem, 3vw, 2.5rem) * var(--scale, 1));
   font-variant-numeric: tabular-nums;
 }
 
 .display__block-name {
   font-size: clamp(1.25rem, 3vw, 2.5rem);
   opacity: 0.85;
-  margin-top: 0.5vh;
 }
 
 .display__message {

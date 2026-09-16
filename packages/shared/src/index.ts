@@ -20,7 +20,12 @@ export const DEFAULT_THRESHOLDS: ColorThresholds = {
 export interface ScheduleBlock {
   id: string;
   name: string;
+  /** Always resolved at save time from whichever of duration/start/end the operator provided - the sole driver of playback. */
   durationSeconds: number;
+  /** Optional planned start-of-day anchor (minutes since midnight, 0-1439), purely for showing delay - never auto-advances anything. */
+  startTimeMinutes: number | null;
+  /** Optional planned end-of-day anchor (minutes since midnight, 0-1439), purely for showing delay - never auto-advances anything. */
+  endTimeMinutes: number | null;
 }
 
 export interface Schedule {
@@ -41,6 +46,10 @@ export interface BlockProjection {
   projectedStartMs: number | null;
   /** Projected/actual end time, epoch ms. */
   projectedEndMs: number | null;
+  /** Today's resolved wall-clock time for this block's planned start anchor, if it has one. */
+  anchoredStartMs: number | null;
+  /** projectedStartMs - anchoredStartMs, in seconds. Positive = running later than planned. Null if no anchor. */
+  delaySeconds: number | null;
 }
 
 export interface Preset {
@@ -51,19 +60,70 @@ export interface Preset {
 
 export type DisplayMode = 'timer' | 'clock';
 
+/** A 3x3 anchor grid for freely placing an element on the display. */
+export type DisplayPosition =
+  | 'top-left'
+  | 'top-center'
+  | 'top-right'
+  | 'center-left'
+  | 'center'
+  | 'center-right'
+  | 'bottom-left'
+  | 'bottom-center'
+  | 'bottom-right';
+
+export const DISPLAY_FONT_FAMILIES = [
+  { id: 'system', label: 'System Default', css: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" },
+  { id: 'mono', label: 'Monospace', css: "'SF Mono', 'Consolas', 'Menlo', monospace" },
+  { id: 'condensed', label: 'Condensed', css: "'Arial Narrow', 'Helvetica Neue Condensed', sans-serif" },
+  { id: 'serif', label: 'Serif', css: "Georgia, 'Times New Roman', serif" },
+  { id: 'impact', label: 'Impact / Display', css: "Impact, Haettenschweiler, 'Arial Black', sans-serif" },
+] as const;
+
+export type DisplayFontFamily = (typeof DISPLAY_FONT_FAMILIES)[number]['id'];
+
+export interface DisplayTextStyle {
+  fontFamily: DisplayFontFamily;
+  /** A CSS color, or 'auto' to keep the automatic normal/warning/critical/overtime coloring (only meaningful for the timer). */
+  color: string;
+  /** Percentage of the default size, e.g. 100 = default, 50 = half, 200 = double. */
+  sizePercent: number;
+  position: DisplayPosition;
+}
+
 export interface DisplaySettings {
   /** Whether the display's main readout shows the countdown timer or the current time of day. */
   mode: DisplayMode;
   /** Whether the active schedule block's name is shown on the display. */
   showBlockName: boolean;
-  /** Whether the current time of day is shown in small text below the timer (only relevant when mode is 'timer'). */
+  /** Whether the current time of day is shown below the timer (only relevant when mode is 'timer'). */
   showTimeBelow: boolean;
+  /** Style/position for the main readout (timer or clock, whichever is showing). */
+  timerStyle: DisplayTextStyle;
+  /** Style/position for the small time-of-day readout below the timer. */
+  timeBelowStyle: DisplayTextStyle;
 }
+
+export const DEFAULT_TIMER_STYLE: DisplayTextStyle = {
+  fontFamily: 'system',
+  color: 'auto',
+  sizePercent: 100,
+  position: 'center',
+};
+
+export const DEFAULT_TIME_BELOW_STYLE: DisplayTextStyle = {
+  fontFamily: 'system',
+  color: '#f2f2f2',
+  sizePercent: 100,
+  position: 'bottom-center',
+};
 
 export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
   mode: 'timer',
   showBlockName: true,
   showTimeBelow: false,
+  timerStyle: { ...DEFAULT_TIMER_STYLE },
+  timeBelowStyle: { ...DEFAULT_TIME_BELOW_STYLE },
 };
 
 export interface QuickMessage {

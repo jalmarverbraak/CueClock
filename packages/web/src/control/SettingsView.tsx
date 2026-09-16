@@ -1,5 +1,6 @@
-import type { Command, DisplaySettings, EngineState } from '@cueclock/shared';
+import type { Command, DisplaySettings, DisplayTextStyle, EngineState } from '@cueclock/shared';
 import { ThresholdsPanel } from './ThresholdsPanel';
+import { DisplayStyleEditor } from './DisplayStyleEditor';
 
 interface Props {
   state: EngineState;
@@ -23,28 +24,10 @@ export function SettingsView({ state, sendCommand }: Props) {
     <div className="settings">
       <section className="panel">
         <h2>Display</h2>
-        <p className="panel__hint">Controls what the fullscreen output screens show.</p>
-
-        <div className="toggle-row">
-          <div>
-            <div className="toggle-row__label">Main readout</div>
-            <div className="toggle-row__hint">Show the countdown timer, or the current time of day</div>
-          </div>
-          <div className="segmented">
-            <button
-              className={`segmented__option ${settings.mode === 'timer' ? 'active' : ''}`}
-              onClick={() => update({ mode: 'timer' })}
-            >
-              Timer
-            </button>
-            <button
-              className={`segmented__option ${settings.mode === 'clock' ? 'active' : ''}`}
-              onClick={() => update({ mode: 'clock' })}
-            >
-              Clock
-            </button>
-          </div>
-        </div>
+        <p className="panel__hint">
+          Controls what the fullscreen output screens show. The Timer/Clock switch lives on the main
+          dashboard next to the timer, since it's used often.
+        </p>
 
         <div className="toggle-row">
           <div>
@@ -61,6 +44,24 @@ export function SettingsView({ state, sendCommand }: Props) {
           </div>
           <Switch on={settings.showTimeBelow} onToggle={() => update({ showTimeBelow: !settings.showTimeBelow })} />
         </div>
+      </section>
+
+      <section className="panel">
+        <h2>Display Appearance</h2>
+        <p className="panel__hint">Font, color, size, and position - set independently for the timer and the time-of-day readout.</p>
+
+        <DisplayStyleEditor
+          title="Timer / Clock readout"
+          style={settings.timerStyle}
+          allowAuto
+          onChange={(timerStyle: DisplayTextStyle) => update({ timerStyle })}
+        />
+        <DisplayStyleEditor
+          title="Time-of-day below timer"
+          style={settings.timeBelowStyle}
+          allowAuto={false}
+          onChange={(timeBelowStyle: DisplayTextStyle) => update({ timeBelowStyle })}
+        />
       </section>
 
       <ThresholdsPanel state={state} sendCommand={sendCommand} />

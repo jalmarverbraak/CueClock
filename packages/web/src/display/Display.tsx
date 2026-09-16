@@ -1,7 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { DISPLAY_FONT_FAMILIES, type DisplayTextStyle } from '@cueclock/shared';
 import { useEngineSocket } from '../shared/useEngineSocket';
 import { formatClock, formatDuration } from '../shared/format';
 import './display.css';
+
+function fontCss(id: DisplayTextStyle['fontFamily']): string {
+  return DISPLAY_FONT_FAMILIES.find((f) => f.id === id)?.css ?? DISPLAY_FONT_FAMILIES[0].css;
+}
+
+function textStyleVars(style: DisplayTextStyle, colorOverride: boolean): CSSProperties {
+  return {
+    fontFamily: fontCss(style.fontFamily),
+    ...(colorOverride && style.color !== 'auto' ? { color: style.color } : {}),
+    ['--scale' as string]: style.sizePercent / 100,
+  };
+}
 
 export function Display() {
   const { state, status } = useEngineSocket();
@@ -41,15 +54,28 @@ export function Display() {
         </div>
       )}
 
-      <div className="display__main">
-        <div className="display__timer">{showClock ? formatClock(now) : formatDuration(state?.remainingSeconds ?? 0)}</div>
-        {!showClock && displaySettings?.showTimeBelow && (
-          <div className="display__time-below">{formatClock(now)}</div>
-        )}
-        {!showClock && displaySettings?.showBlockName && activeBlock && (
-          <div className="display__block-name">{activeBlock.name}</div>
-        )}
-      </div>
+      {displaySettings && (
+        <div
+          className={`display__timer-wrap pos-${displaySettings.timerStyle.position}`}
+          style={textStyleVars(displaySettings.timerStyle, !keyFill)}
+        >
+          <div className="display__timer">
+            {showClock ? formatClock(now) : formatDuration(state?.remainingSeconds ?? 0)}
+          </div>
+          {!showClock && displaySettings.showBlockName && activeBlock && (
+            <div className="display__block-name">{activeBlock.name}</div>
+          )}
+        </div>
+      )}
+
+      {displaySettings && !showClock && displaySettings.showTimeBelow && (
+        <div
+          className={`display__time-below pos-${displaySettings.timeBelowStyle.position}`}
+          style={textStyleVars(displaySettings.timeBelowStyle, !keyFill)}
+        >
+          {formatClock(now)}
+        </div>
+      )}
 
       {state?.message && <div className="display__message">{state.message}</div>}
 
