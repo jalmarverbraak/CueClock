@@ -64,6 +64,21 @@ export function Display() {
   const showClock = displaySettings?.mode === 'clock';
   const flashing = !keyFill && colorState === 'overtime' && displaySettings?.flashOnOvertime;
 
+  const timeBelowVisible = !!displaySettings && !showClock && displaySettings.showTimeBelow;
+  // If both readouts share a position they'd otherwise stack directly on top of each other
+  // (same grid cell) - render the time-below readout inside the timer's own wrapper instead,
+  // so it always ends up timer-then-clock, top-to-bottom.
+  const samePosition = timeBelowVisible && displaySettings!.timerStyle.position === displaySettings!.timeBelowStyle.position;
+
+  const timeBelowNode = timeBelowVisible && (
+    <div
+      className={`display__time-below ${samePosition ? '' : `pos-${displaySettings!.timeBelowStyle.position}`}`}
+      style={textStyleVars(displaySettings!.timeBelowStyle, !keyFill)}
+    >
+      {formatClock(now)}
+    </div>
+  );
+
   return (
     <div
       className={`display display--${colorState} ${keyFill ? 'display--keyfill' : ''}`}
@@ -91,17 +106,11 @@ export function Display() {
               Next: {nextBlock.name} ({formatDuration(nextBlock.durationSeconds)})
             </div>
           )}
+          {samePosition && timeBelowNode}
         </div>
       )}
 
-      {displaySettings && !showClock && displaySettings.showTimeBelow && (
-        <div
-          className={`display__time-below pos-${displaySettings.timeBelowStyle.position}`}
-          style={textStyleVars(displaySettings.timeBelowStyle, !keyFill)}
-        >
-          {formatClock(now)}
-        </div>
-      )}
+      {!samePosition && timeBelowNode}
 
       {state?.message && <div className="display__message">{state.message}</div>}
 

@@ -466,6 +466,22 @@
   cursor: not-allowed;
 }
 
+.style-editor__size {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.style-editor__size input[type='range'] {
+  flex: 1;
+  min-width: 6rem;
+}
+
+.style-editor__size-input {
+  width: 4.2rem;
+  flex: none;
+}
+
 .style-editor__hint {
   font-size: 0.72rem;
   opacity: 0.7;
