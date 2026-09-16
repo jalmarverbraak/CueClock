@@ -39,6 +39,14 @@ export function SettingsView({ state, sendCommand }: Props) {
 
         <div className="toggle-row">
           <div>
+            <div className="toggle-row__label">Show next block</div>
+            <div className="toggle-row__hint">Shows the upcoming block's name and duration, right under the current one</div>
+          </div>
+          <Switch on={settings.showNextBlock} onToggle={() => update({ showNextBlock: !settings.showNextBlock })} />
+        </div>
+
+        <div className="toggle-row">
+          <div>
             <div className="toggle-row__label">Show time of day below timer</div>
             <div className="toggle-row__hint">Small clock (hours and minutes) under the countdown</div>
           </div>
@@ -48,7 +56,11 @@ export function SettingsView({ state, sendCommand }: Props) {
 
       <section className="panel">
         <h2>Display Appearance</h2>
-        <p className="panel__hint">Font, color, size, and position - set independently for the timer and the time-of-day readout.</p>
+        <p className="panel__hint">
+          Font, color, size, and position - set independently for the timer and the time-of-day readout.
+          Google Fonts load on demand and need internet the first time they're used; System fonts always
+          work offline.
+        </p>
 
         <DisplayStyleEditor
           title="Timer / Clock readout"
@@ -62,6 +74,17 @@ export function SettingsView({ state, sendCommand }: Props) {
           allowAuto={false}
           onChange={(timeBelowStyle: DisplayTextStyle) => update({ timeBelowStyle })}
         />
+      </section>
+
+      <section className="panel">
+        <h2>Timer Effects</h2>
+        <div className="toggle-row">
+          <div>
+            <div className="toggle-row__label">Flash when over time</div>
+            <div className="toggle-row__hint">Pulses the timer digits once it goes into overtime (the text is already red either way)</div>
+          </div>
+          <Switch on={settings.flashOnOvertime} onToggle={() => update({ flashOnOvertime: !settings.flashOnOvertime })} />
+        </div>
       </section>
 
       <ThresholdsPanel state={state} sendCommand={sendCommand} />

@@ -12,6 +12,9 @@ const POSITIONS: DisplayPosition[] = [
   'bottom-right',
 ];
 
+const SYSTEM_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'system');
+const GOOGLE_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'google');
+
 interface Props {
   title: string;
   style: DisplayTextStyle;
@@ -24,6 +27,8 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
     onChange({ ...style, ...p });
   }
 
+  const isAuto = allowAuto && style.color === 'auto';
+
   return (
     <div className="style-editor">
       <h3>{title}</h3>
@@ -35,11 +40,20 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
             value={style.fontFamily}
             onChange={(e) => patch({ fontFamily: e.target.value as DisplayTextStyle['fontFamily'] })}
           >
-            {DISPLAY_FONT_FAMILIES.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label}
-              </option>
-            ))}
+            <optgroup label="System (works offline)">
+              {SYSTEM_FONTS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Google Fonts (needs internet on first use)">
+              {GOOGLE_FONTS.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.label}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </label>
 
@@ -47,20 +61,29 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
           <span>Color</span>
           <div className="style-editor__color">
             {allowAuto && (
-              <button
-                className={`btn btn--chip ${style.color === 'auto' ? 'active' : ''}`}
-                onClick={() => patch({ color: 'auto' })}
-              >
-                Auto
-              </button>
+              <div className="segmented">
+                <button className={`segmented__option ${isAuto ? 'active' : ''}`} onClick={() => patch({ color: 'auto' })}>
+                  Auto
+                </button>
+                <button
+                  className={`segmented__option ${!isAuto ? 'active' : ''}`}
+                  onClick={() => !isAuto || patch({ color: '#f2f2f2' })}
+                >
+                  Custom
+                </button>
+              </div>
             )}
             <input
               type="color"
               className="style-editor__swatch"
+              disabled={isAuto}
               value={style.color === 'auto' ? '#f2f2f2' : style.color}
               onChange={(e) => patch({ color: e.target.value })}
             />
           </div>
+          {allowAuto && isAuto && (
+            <span className="style-editor__hint">Auto follows the normal/warning/critical/overtime status color.</span>
+          )}
         </label>
 
         <label className="style-editor__field">

@@ -8,14 +8,14 @@ interface Props {
 }
 
 const ADJUST_STEPS = [
-  { label: '1h', seconds: 3600 },
-  { label: '10m', seconds: 600 },
-  { label: '5m', seconds: 300 },
-  { label: '1m', seconds: 60 },
   { label: '10s', seconds: 10 },
+  { label: '1m', seconds: 60 },
+  { label: '5m', seconds: 300 },
+  { label: '10m', seconds: 600 },
+  { label: '1h', seconds: 3600 },
 ];
 
-const SPEED_STEPS = [-10, -5, -1, 1, 5, 10];
+const SPEED_STEPS = [1, 5, 10];
 
 export function NowPlaying({ state, sendCommand }: Props) {
   const [speedInput, setSpeedInput] = useState('');
@@ -124,25 +124,42 @@ export function NowPlaying({ state, sendCommand }: Props) {
           ))}
         </div>
         <div className="adjust-grid__row">
-          {ADJUST_STEPS.slice()
-            .reverse()
-            .map((step) => (
-              <button key={`plus-${step.label}`} className="adjust-btn adjust-btn--plus" onClick={() => adjust(step.seconds)}>
-                +{step.label}
-              </button>
-            ))}
+          {ADJUST_STEPS.map((step) => (
+            <button key={`plus-${step.label}`} className="adjust-btn adjust-btn--plus" onClick={() => adjust(step.seconds)}>
+              +{step.label}
+            </button>
+          ))}
         </div>
       </div>
 
       {!isIdle && (
         <div className="now-playing__row">
           <span className="now-playing__row-label">Speed ({state.speedPercent}%)</span>
+          <div className="adjust-grid">
+            <div className="adjust-grid__row adjust-grid__row--speed">
+              {SPEED_STEPS.map((delta) => (
+                <button
+                  key={`minus-${delta}`}
+                  className="adjust-btn adjust-btn--minus"
+                  onClick={() => applySpeed(state.speedPercent - delta)}
+                >
+                  −{delta}%
+                </button>
+              ))}
+            </div>
+            <div className="adjust-grid__row adjust-grid__row--speed">
+              {SPEED_STEPS.map((delta) => (
+                <button
+                  key={`plus-${delta}`}
+                  className="adjust-btn adjust-btn--plus"
+                  onClick={() => applySpeed(state.speedPercent + delta)}
+                >
+                  +{delta}%
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="now-playing__buttons">
-            {SPEED_STEPS.map((delta) => (
-              <button key={delta} className="btn btn--chip" onClick={() => applySpeed(state.speedPercent + delta)}>
-                {delta > 0 ? `+${delta}%` : `${delta}%`}
-              </button>
-            ))}
             <button className="btn btn--chip" onClick={() => applySpeed(100)}>
               Reset to 100%
             </button>
