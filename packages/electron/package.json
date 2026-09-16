@@ -42,6 +42,7 @@
     },
     "electronVersion": "32.3.3",
     "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "afterPack": "scripts/afterPack.js",
     "publish": {
       "provider": "github",
       "owner": "Webinary-Media",
