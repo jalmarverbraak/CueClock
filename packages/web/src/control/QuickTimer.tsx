@@ -88,38 +88,6 @@ export function QuickTimer({ state, sendCommand }: Props) {
         <div className="field-error">Enter a duration like “5:00” or “5” (minutes).</div>
       )}
       {mode === 'ends-at' && endsAtText && !isValid && <div className="field-error">Pick a valid time.</div>}
-
-      {state.presets.length > 0 && (
-        <>
-          <h3>Presets — click to set, then press Start</h3>
-          <div className="preset-grid">
-            {state.presets
-              .slice()
-              .sort((a, b) => a.durationSeconds - b.durationSeconds)
-              .map((p) => (
-                <button
-                  key={p.id}
-                  className="preset-chip"
-                  onClick={() => sendCommand({ type: 'armQuick', durationSeconds: p.durationSeconds })}
-                >
-                  {formatDuration(p.durationSeconds)}
-                  <span
-                    className="preset-chip__remove"
-                    role="button"
-                    tabIndex={-1}
-                    title="Delete this preset"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      sendCommand({ type: 'deletePreset', id: p.id });
-                    }}
-                  >
-                    ×
-                  </span>
-                </button>
-              ))}
-          </div>
-        </>
-      )}
     </section>
   );
 }
