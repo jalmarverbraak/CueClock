@@ -6,6 +6,9 @@ export function applyCommand(engine: Engine, command: Command): void {
     case 'startQuick':
       engine.startQuick(command.durationSeconds);
       return;
+    case 'armQuick':
+      engine.armQuick(command.durationSeconds);
+      return;
     case 'startBlock':
       engine.jumpToBlock(command.scheduleId, command.blockId);
       return;
@@ -35,6 +38,9 @@ export function applyCommand(engine: Engine, command: Command): void {
       return;
     case 'setThresholds':
       engine.setThresholds(command.thresholds);
+      return;
+    case 'setDisplaySettings':
+      engine.setDisplaySettings(command.settings);
       return;
     case 'savePreset':
       engine.savePreset(command.name, command.durationSeconds);

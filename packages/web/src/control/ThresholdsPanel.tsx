@@ -21,15 +21,22 @@ export function ThresholdsPanel({ state, sendCommand }: Props) {
     <section className="panel">
       <h2>Warning Colors</h2>
       <p className="panel__hint">Display turns amber, then red, as time runs out; it turns fully red once past zero.</p>
-      <div className="thresholds__row">
-        <label>
-          Turn amber at
-          <input className="text-input text-input--small" value={warning} onChange={(e) => setWarning(e.target.value)} /> min remaining
-        </label>
-        <label>
-          Turn red at
-          <input className="text-input text-input--small" value={critical} onChange={(e) => setCritical(e.target.value)} /> sec remaining
-        </label>
+
+      <div className="toggle-row">
+        <div className="toggle-row__label">Turn amber at</div>
+        <div className="thresholds__field">
+          <input className="text-input text-input--small" value={warning} onChange={(e) => setWarning(e.target.value)} />
+          <span className="toggle-row__hint">min remaining</span>
+        </div>
+      </div>
+      <div className="toggle-row">
+        <div className="toggle-row__label">Turn red at</div>
+        <div className="thresholds__field">
+          <input className="text-input text-input--small" value={critical} onChange={(e) => setCritical(e.target.value)} />
+          <span className="toggle-row__hint">sec remaining</span>
+        </div>
+      </div>
+      <div className="thresholds__apply">
         <button className="btn btn--secondary" onClick={apply}>
           Apply
         </button>

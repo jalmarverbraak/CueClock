@@ -14,6 +14,7 @@ const VENDOR_WEB_DIR = path.join(__dirname, '../vendor/web');
 
 let controlWindow: BrowserWindow | null = null;
 let displayWindow: BrowserWindow | null = null;
+let keyFillWindow: BrowserWindow | null = null;
 let resolvedPort = BASE_PORT;
 
 function listenWithFallback(
@@ -54,30 +55,65 @@ function createControlWindow(port: number) {
   });
 }
 
-function openDisplayWindow(port: number, { fullscreenOnSecondary }: { fullscreenOnSecondary: boolean }) {
-  if (displayWindow) {
-    displayWindow.focus();
-    return;
+/** Opens (or focuses) an output window loading display.html, optionally fullscreened on a specific monitor. */
+function openOutputWindow(options: {
+  existing: BrowserWindow | null;
+  setWindow: (w: BrowserWindow | null) => void;
+  port: number;
+  urlPath: string;
+  title: string;
+  preferredDisplayIndex: number | null;
+}): BrowserWindow {
+  if (options.existing) {
+    options.existing.focus();
+    return options.existing;
   }
 
   const displays = screen.getAllDisplays();
-  const secondary = displays.find((d) => d.id !== screen.getPrimaryDisplay().id);
-  const target = fullscreenOnSecondary && secondary ? secondary : screen.getPrimaryDisplay();
+  const target =
+    options.preferredDisplayIndex !== null ? displays[options.preferredDisplayIndex] : undefined;
+  const bounds = target?.bounds ?? screen.getPrimaryDisplay().bounds;
 
-  displayWindow = new BrowserWindow({
-    x: target.bounds.x,
-    y: target.bounds.y,
+  const win = new BrowserWindow({
+    x: bounds.x,
+    y: bounds.y,
     width: 1280,
     height: 720,
-    title: 'CueClock — Display',
+    title: options.title,
     autoHideMenuBar: true,
   });
-  displayWindow.loadURL(`http://localhost:${port}/display.html`);
-  if (fullscreenOnSecondary && secondary) {
-    displayWindow.setFullScreen(true);
-  }
-  displayWindow.on('closed', () => {
-    displayWindow = null;
+  win.loadURL(`http://localhost:${options.port}${options.urlPath}`);
+  if (target) win.setFullScreen(true);
+  win.on('closed', () => options.setWindow(null));
+  options.setWindow(win);
+  return win;
+}
+
+function openDisplayWindow(port: number, { fullscreenOnSecondary }: { fullscreenOnSecondary: boolean }) {
+  const displays = screen.getAllDisplays();
+  const secondaryIndex = displays.findIndex((d) => d.id !== screen.getPrimaryDisplay().id);
+  displayWindow = openOutputWindow({
+    existing: displayWindow,
+    setWindow: (w) => (displayWindow = w),
+    port,
+    urlPath: '/display.html',
+    title: 'CueClock — Display',
+    preferredDisplayIndex: fullscreenOnSecondary && secondaryIndex !== -1 ? secondaryIndex : null,
+  });
+}
+
+function openKeyFillWindow(port: number, { fullscreenOnThird }: { fullscreenOnThird: boolean }) {
+  const displays = screen.getAllDisplays();
+  const primaryId = screen.getPrimaryDisplay().id;
+  const nonPrimaryIndexes = displays.map((d, i) => i).filter((i) => displays[i].id !== primaryId);
+  const thirdIndex = nonPrimaryIndexes[1] ?? nonPrimaryIndexes[0] ?? -1;
+  keyFillWindow = openOutputWindow({
+    existing: keyFillWindow,
+    setWindow: (w) => (keyFillWindow = w),
+    port,
+    urlPath: '/display.html?mode=key',
+    title: 'CueClock — Key/Fill Output',
+    preferredDisplayIndex: fullscreenOnThird && thirdIndex !== -1 ? thirdIndex : null,
   });
 }
 
@@ -93,15 +129,24 @@ function buildMenu(port: number) {
         ],
       },
       {
-        label: 'Display',
+        label: 'Outputs',
         submenu: [
           {
-            label: 'Open on Second Monitor (Fullscreen)',
+            label: 'Open Display on Second Monitor (Fullscreen)',
             click: () => openDisplayWindow(port, { fullscreenOnSecondary: true }),
           },
           {
-            label: 'Open in a Window',
+            label: 'Open Display in a Window',
             click: () => openDisplayWindow(port, { fullscreenOnSecondary: false }),
+          },
+          { type: 'separator' },
+          {
+            label: 'Open Key/Fill on Third Monitor (Fullscreen)',
+            click: () => openKeyFillWindow(port, { fullscreenOnThird: true }),
+          },
+          {
+            label: 'Open Key/Fill in a Window',
+            click: () => openKeyFillWindow(port, { fullscreenOnThird: false }),
           },
         ],
       },

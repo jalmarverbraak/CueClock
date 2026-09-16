@@ -40,6 +40,32 @@ describe('quick timer', () => {
   });
 });
 
+describe('arming a quick timer', () => {
+  it('sets the duration without starting it', () => {
+    const engine = new Engine(() => T0);
+    engine.armQuick(300, T0);
+    const state = engine.getState(T0 + 10_000);
+    expect(state.mode).toBe('quick');
+    expect(state.running).toBe(false);
+    expect(state.remainingSeconds).toBe(300);
+    expect(state.durationSeconds).toBe(300);
+  });
+
+  it('can be started afterwards with resume', () => {
+    const engine = new Engine(() => T0);
+    engine.armQuick(300, T0);
+    engine.resume(T0 + 5_000);
+    const state = engine.getState(T0 + 15_000);
+    expect(state.running).toBe(true);
+    expect(state.remainingSeconds).toBeCloseTo(290, 5);
+  });
+
+  it('rejects a non-positive duration', () => {
+    const engine = new Engine(() => T0);
+    expect(() => engine.armQuick(0, T0)).toThrow(EngineError);
+  });
+});
+
 describe('add / remove time', () => {
   it('extends remaining and total duration', () => {
     const engine = new Engine(() => T0);
@@ -183,14 +209,16 @@ describe('schedules', () => {
     expect(projections[1].projectedEndMs).toBeCloseTo(T0 + 300_000 + 600_000, -1);
   });
 
-  it('leaves future projections unknown while the active block is in overtime', () => {
+  it('keeps projecting start/end times live while the active block is in overtime', () => {
     const { engine, schedule } = scheduleEngine();
     engine.startSchedule(schedule.id, T0);
     const now = T0 + 400_000; // 100s into overtime on a 300s block
     const projections = engine.getState(now).blockProjections;
+    // "if it ended right now" - keeps sliding forward every tick instead of going unknown
     expect(projections[0].status).toBe('active');
-    expect(projections[0].projectedEndMs).toBeNull();
-    expect(projections[1].projectedStartMs).toBeNull();
+    expect(projections[0].projectedEndMs).toBe(now);
+    expect(projections[1].projectedStartMs).toBe(now);
+    expect(projections[1].projectedEndMs).toBe(now + 600_000);
   });
 
   it('finishing the last block returns engine to idle', () => {
@@ -281,5 +309,24 @@ describe('presets, quick messages, and library CRUD', () => {
     engine.startSchedule(schedule.id, T0);
     engine.saveSchedule({ ...schedule, name: 'Day 1 (renamed)' });
     expect(engine.getState(T0).activeSchedule?.name).toBe('Day 1 (renamed)');
+  });
+});
+
+describe('display settings', () => {
+  it('defaults to timer mode with block name shown and time-below hidden', () => {
+    const engine = new Engine(() => T0);
+    const settings = engine.getState(T0).displaySettings;
+    expect(settings).toEqual({ mode: 'timer', showBlockName: true, showTimeBelow: false });
+  });
+
+  it('persists updated display settings', () => {
+    const engine = new Engine(() => T0);
+    engine.setDisplaySettings({ mode: 'clock', showBlockName: false, showTimeBelow: true });
+    expect(engine.getState(T0).displaySettings).toEqual({
+      mode: 'clock',
+      showBlockName: false,
+      showTimeBelow: true,
+    });
+    expect(engine.getPersistedState().displaySettings.mode).toBe('clock');
   });
 });

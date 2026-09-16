@@ -9,20 +9,19 @@ interface Props {
 
 export function QuickTimer({ state, sendCommand }: Props) {
   const [durationText, setDurationText] = useState('5:00');
-  const [presetName, setPresetName] = useState('');
 
   const parsed = parseDurationInput(durationText);
   const isValid = parsed !== null && parsed > 0;
+  const alreadySaved = isValid && state.presets.some((p) => p.durationSeconds === parsed);
 
   function start() {
     if (!isValid || parsed === null) return;
     sendCommand({ type: 'startQuick', durationSeconds: parsed });
   }
 
-  function savePreset() {
-    if (!isValid || parsed === null || !presetName.trim()) return;
-    sendCommand({ type: 'savePreset', name: presetName.trim(), durationSeconds: parsed });
-    setPresetName('');
+  function saveAsPreset() {
+    if (!isValid || parsed === null || alreadySaved) return;
+    sendCommand({ type: 'savePreset', name: formatDuration(parsed), durationSeconds: parsed });
   }
 
   return (
@@ -41,44 +40,44 @@ export function QuickTimer({ state, sendCommand }: Props) {
         <button className="btn btn--primary" disabled={!isValid} onClick={start}>
           Start {isValid ? formatDuration(parsed!) : ''}
         </button>
+        <button className="btn btn--secondary" disabled={!isValid || alreadySaved} onClick={saveAsPreset}>
+          {alreadySaved ? 'Saved' : '+ Save as preset'}
+        </button>
       </div>
       {!isValid && durationText.trim() !== '' && (
         <div className="field-error">Enter a duration like “5:00” or “5” (minutes).</div>
       )}
 
-      <div className="quick-timer__save">
-        <input
-          className="text-input"
-          placeholder="Save this duration as a preset…"
-          value={presetName}
-          onChange={(e) => setPresetName(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && savePreset()}
-        />
-        <button className="btn btn--secondary" disabled={!isValid || !presetName.trim()} onClick={savePreset}>
-          Save preset
-        </button>
-      </div>
-
       {state.presets.length > 0 && (
-        <div className="quick-timer__presets">
-          {state.presets.map((p) => (
-            <div key={p.id} className="chip-with-delete">
-              <button
-                className="btn btn--chip"
-                onClick={() => sendCommand({ type: 'startQuick', durationSeconds: p.durationSeconds })}
-              >
-                {p.name} · {formatDuration(p.durationSeconds)}
-              </button>
-              <button
-                className="chip-with-delete__remove"
-                title="Delete this preset"
-                onClick={() => sendCommand({ type: 'deletePreset', id: p.id })}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
+        <>
+          <h3>Presets — click to set, then press Start</h3>
+          <div className="preset-grid">
+            {state.presets
+              .slice()
+              .sort((a, b) => a.durationSeconds - b.durationSeconds)
+              .map((p) => (
+                <button
+                  key={p.id}
+                  className="preset-chip"
+                  onClick={() => sendCommand({ type: 'armQuick', durationSeconds: p.durationSeconds })}
+                >
+                  {formatDuration(p.durationSeconds)}
+                  <span
+                    className="preset-chip__remove"
+                    role="button"
+                    tabIndex={-1}
+                    title="Delete this preset"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      sendCommand({ type: 'deletePreset', id: p.id });
+                    }}
+                  >
+                    ×
+                  </span>
+                </button>
+              ))}
+          </div>
+        </>
       )}
     </section>
   );
