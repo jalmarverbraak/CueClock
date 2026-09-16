@@ -84,13 +84,25 @@ function openOutputWindow(options: {
     height: 720,
     title: options.title,
     autoHideMenuBar: true,
-    // Matches display.html's own background so repositioning/resizing content (e.g.
-    // moving the timer, entering fullscreen) never flashes Electron's native black
-    // compositor surface through as a visible bar before the page repaints.
+    // These are stage-output windows, never a normal app window: no native title
+    // bar/frame. Besides looking wrong, an OS title bar is a dark/black strip
+    // that sits right above the content - exactly where it becomes visible once
+    // the timer or clock is positioned at the top of the screen.
+    frame: false,
+    // Go fullscreen at creation time (when a target display was picked) rather
+    // than via setFullScreen() after load, so there's no windowed frame ever
+    // shown mid-transition on the way to fullscreen.
+    fullscreen: !!target,
+    // Matches display.html's own background so any repaint before the page's
+    // own CSS background applies (or on displays where fullscreen fails) never
+    // flashes Electron's native black compositor surface through as a bar.
     backgroundColor: '#05070a',
   });
   win.loadURL(`http://localhost:${options.port}${options.urlPath}`);
-  if (target) win.setFullScreen(true);
+  // Frameless windows have no close button - Escape is the operator's way out.
+  win.webContents.on('before-input-event', (_event, input) => {
+    if (input.type === 'keyDown' && input.key === 'Escape') win.close();
+  });
   win.on('closed', () => options.setWindow(null));
   options.setWindow(win);
   return win;
@@ -154,6 +166,15 @@ function buildMenu(port: number) {
           {
             label: 'Open Key/Fill in a Window',
             click: () => openKeyFillWindow(port, { fullscreenOnThird: false }),
+          },
+          { type: 'separator' },
+          {
+            label: 'Close Display Window',
+            click: () => displayWindow?.close(),
+          },
+          {
+            label: 'Close Key/Fill Window',
+            click: () => keyFillWindow?.close(),
           },
         ],
       },
