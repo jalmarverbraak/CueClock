@@ -66,6 +66,46 @@ describe('arming a quick timer', () => {
   });
 });
 
+describe('count-up (stopwatch) mode', () => {
+  it('counts up from zero and never leaves the normal color state', () => {
+    const engine = new Engine(() => T0);
+    engine.startCountUp(T0);
+    const state = engine.getState(T0 + 90_000);
+    expect(state.mode).toBe('countup');
+    expect(state.running).toBe(true);
+    expect(state.remainingSeconds).toBeCloseTo(-90, 5);
+    expect(state.colorState).toBe('normal');
+  });
+
+  it('stays normal even after the critical threshold would otherwise trigger', () => {
+    const engine = new Engine(() => T0);
+    engine.startCountUp(T0);
+    const state = engine.getState(T0 + 3_600_000);
+    expect(state.colorState).toBe('normal');
+  });
+
+  it('can be paused and resumed like any other timer', () => {
+    const engine = new Engine(() => T0);
+    engine.startCountUp(T0);
+    engine.pause(T0 + 10_000);
+    expect(engine.getState(T0 + 30_000).remainingSeconds).toBeCloseTo(-10, 5);
+
+    engine.resume(T0 + 30_000);
+    const state = engine.getState(T0 + 35_000);
+    expect(state.remainingSeconds).toBeCloseTo(-15, 5);
+    expect(state.running).toBe(true);
+  });
+
+  it('reset returns it to idle', () => {
+    const engine = new Engine(() => T0);
+    engine.startCountUp(T0);
+    engine.reset(T0 + 10_000);
+    const state = engine.getState(T0 + 10_000);
+    expect(state.mode).toBe('idle');
+    expect(state.remainingSeconds).toBe(0);
+  });
+});
+
 describe('add / remove time', () => {
   it('extends remaining and total duration', () => {
     const engine = new Engine(() => T0);

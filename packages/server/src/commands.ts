@@ -9,6 +9,9 @@ export function applyCommand(engine: Engine, command: Command): void {
     case 'armQuick':
       engine.armQuick(command.durationSeconds);
       return;
+    case 'startCountUp':
+      engine.startCountUp();
+      return;
     case 'startBlock':
       engine.jumpToBlock(command.scheduleId, command.blockId);
       return;

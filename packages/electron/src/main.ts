@@ -97,6 +97,14 @@ function openOutputWindow(options: {
     // own CSS background applies (or on displays where fullscreen fails) never
     // flashes Electron's native black compositor surface through as a bar.
     backgroundColor: '#05070a',
+    webPreferences: {
+      // These windows are almost never focused (the operator lives in Control) and
+      // often sit on a secondary/projector output. Chromium throttles rendering on
+      // windows it considers backgrounded to save power, which can leave stale
+      // (black) pixels around whatever small region is still forcing a repaint -
+      // e.g. a ticking clock - while the rest of the frame never gets redrawn.
+      backgroundThrottling: false,
+    },
   });
   win.loadURL(`http://localhost:${options.port}${options.urlPath}`);
   // Frameless windows have no close button - Escape is the operator's way out.

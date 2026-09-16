@@ -86,6 +86,6 @@ export function computeEndsAtMs(params: {
   speedPercent: number;
   serverTimeMs: number;
 }): number | null {
-  if (params.mode === 'idle') return null;
+  if (params.mode === 'idle' || params.mode === 'countup') return null;
   return params.serverTimeMs + (params.remainingSeconds / (params.speedPercent / 100)) * 1000;
 }

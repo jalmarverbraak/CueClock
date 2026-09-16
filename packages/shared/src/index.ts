@@ -1,7 +1,7 @@
 // Shared types between server, web (Control + Display), and electron shell.
 // This is the contract clients and the server agree on over WebSocket/REST.
 
-export type TimerMode = 'idle' | 'quick' | 'block';
+export type TimerMode = 'idle' | 'quick' | 'block' | 'countup';
 
 export type ColorState = 'normal' | 'warning' | 'critical' | 'overtime';
 
@@ -252,6 +252,7 @@ export interface EngineState {
 export type Command =
   | { type: 'startQuick'; durationSeconds: number }
   | { type: 'armQuick'; durationSeconds: number }
+  | { type: 'startCountUp' }
   | { type: 'startBlock'; scheduleId: string; blockId: string }
   | { type: 'startSchedule'; scheduleId: string }
   | { type: 'nextBlock' }

@@ -25,6 +25,8 @@ export function NowPlaying({ state, sendCommand }: Props) {
 
   const endsAtMs = computeEndsAtMs(state);
   const isOver = state.remainingSeconds <= 0;
+  const isCountUp = state.mode === 'countup';
+  const displaySeconds = isCountUp ? Math.abs(state.remainingSeconds) : state.remainingSeconds;
 
   function applySpeed(percent: number) {
     sendCommand({ type: 'setSpeed', speedPercent: percent });
@@ -63,7 +65,7 @@ export function NowPlaying({ state, sendCommand }: Props) {
       </div>
 
       <div className={`now-playing__time now-playing__time--${state.colorState}`}>
-        {isIdle ? '—:—' : formatDuration(state.remainingSeconds)}
+        {formatDuration(displaySeconds)}
       </div>
 
       {endsAtMs !== null && (
@@ -85,29 +87,26 @@ export function NowPlaying({ state, sendCommand }: Props) {
       )}
 
       <div className="now-playing__transport">
-        {isIdle ? (
-          <span className="now-playing__hint">Click a + button below, or set a quick timer / schedule block.</span>
+        {state.running ? (
+          <button className="btn btn--secondary" onClick={() => sendCommand({ type: 'pause' })}>
+            Pause
+          </button>
         ) : (
-          <>
-            {state.running ? (
-              <button className="btn btn--secondary" onClick={() => sendCommand({ type: 'pause' })}>
-                Pause
-              </button>
-            ) : (
-              <button className="btn btn--primary" onClick={() => sendCommand({ type: 'resume' })}>
-                {neverStarted ? 'Start' : 'Resume'}
-              </button>
-            )}
-            {hasNextBlock && (
-              <button className="btn btn--primary" onClick={() => sendCommand({ type: 'nextBlock' })}>
-                Next Block →
-              </button>
-            )}
-            <button className="btn btn--danger" onClick={() => sendCommand({ type: 'reset' })}>
-              Reset
-            </button>
-          </>
+          <button
+            className="btn btn--primary"
+            onClick={() => sendCommand(isIdle ? { type: 'startCountUp' } : { type: 'resume' })}
+          >
+            {isIdle ? 'Play' : neverStarted ? 'Start' : 'Resume'}
+          </button>
         )}
+        {hasNextBlock && (
+          <button className="btn btn--primary" onClick={() => sendCommand({ type: 'nextBlock' })}>
+            Next Block →
+          </button>
+        )}
+        <button className="btn btn--danger" disabled={isIdle} onClick={() => sendCommand({ type: 'reset' })}>
+          Reset
+        </button>
       </div>
 
       <div className="adjust-grid">

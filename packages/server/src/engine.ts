@@ -147,6 +147,20 @@ export class Engine {
     this.message = null;
   }
 
+  /** Starts an open-ended stopwatch from zero - no target duration, so no warning/critical/overtime coloring applies. */
+  startCountUp(now: number = this.clock()) {
+    this.mode = 'countup';
+    this.running = true;
+    this.durationSeconds = 0;
+    this.baseRemainingSeconds = 0;
+    this.lastChangeMs = now;
+    this.activeSchedule = null;
+    this.activeBlockIndex = null;
+    this.activeBlockStartedAtMs = null;
+    this.completedBlocks = [];
+    this.message = null;
+  }
+
   startSchedule(scheduleId: string, now: number = this.clock()) {
     const schedule = this.findSchedule(scheduleId);
     if (schedule.blocks.length === 0) throw new EngineError('Schedule has no blocks');
@@ -340,7 +354,7 @@ export class Engine {
   // ---- derived state for clients ----
 
   private colorStateFor(remaining: number): ColorState {
-    if (this.mode === 'idle') return 'normal';
+    if (this.mode === 'idle' || this.mode === 'countup') return 'normal';
     if (remaining < 0) return 'overtime';
     if (remaining <= this.thresholds.criticalAtSeconds) return 'critical';
     if (remaining <= this.thresholds.warningAtSeconds) return 'warning';
