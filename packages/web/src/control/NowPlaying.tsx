@@ -22,6 +22,7 @@ export function NowPlaying({ state, sendCommand }: Props) {
   const [speedInput, setSpeedInput] = useState('');
   const isIdle = state.mode === 'idle';
   const hasNextBlock = state.mode === 'block' && state.blockProjections.some((b) => b.status === 'upcoming');
+  const neverStarted = !isIdle && !state.running && state.remainingSeconds === state.durationSeconds;
 
   function applySpeed(percent: number) {
     sendCommand({ type: 'setSpeed', speedPercent: percent });
@@ -58,7 +59,7 @@ export function NowPlaying({ state, sendCommand }: Props) {
               </button>
             ) : (
               <button className="btn btn--primary" onClick={() => sendCommand({ type: 'resume' })}>
-                Resume
+                {neverStarted ? 'Start' : 'Resume'}
               </button>
             )}
             {hasNextBlock && (

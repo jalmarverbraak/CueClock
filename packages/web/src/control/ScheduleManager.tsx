@@ -35,54 +35,56 @@ export function ScheduleManager({ state, sendCommand }: Props) {
     <section className="panel">
       <h2>Rundown / Schedule</h2>
 
-      {isRunning && <RunningRundown state={state} sendCommand={sendCommand} />}
+      <div className="schedule-manager__scroll">
+        {isRunning && <RunningRundown state={state} sendCommand={sendCommand} />}
 
-      <div className="schedule-manager__library">
-        <div className="panel__row-header">
-          <h3>Saved schedules</h3>
-          {!editing && (
-            <button className="btn btn--secondary" onClick={startEditingNew}>
-              + New schedule
-            </button>
+        <div className="schedule-manager__library">
+          <div className="panel__row-header">
+            <h3>Saved schedules</h3>
+            {!editing && (
+              <button className="btn btn--secondary" onClick={startEditingNew}>
+                + New schedule
+              </button>
+            )}
+          </div>
+
+          {state.schedules.length === 0 && !editing && (
+            <p className="panel__hint">No schedules yet — create one to plan out blocks with durations.</p>
           )}
+
+          {!editing &&
+            state.schedules.map((s) => (
+              <div key={s.id} className="schedule-row">
+                <div className="schedule-row__info">
+                  <strong>{s.name}</strong>
+                  <span>
+                    {s.blocks.length} block{s.blocks.length === 1 ? '' : 's'} · {formatDuration(totalDuration(s))}
+                  </span>
+                </div>
+                <div className="schedule-row__actions">
+                  <button className="btn btn--primary" onClick={() => sendCommand({ type: 'startSchedule', scheduleId: s.id })}>
+                    Start
+                  </button>
+                  <button className="btn btn--chip" onClick={() => setEditing(s)}>
+                    Edit
+                  </button>
+                  <button className="btn btn--chip" onClick={() => sendCommand({ type: 'deleteSchedule', id: s.id })}>
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
         </div>
 
-        {state.schedules.length === 0 && !editing && (
-          <p className="panel__hint">No schedules yet — create one to plan out blocks with durations.</p>
+        {editing && (
+          <ScheduleEditor
+            schedule={editing}
+            onChange={setEditing}
+            onSave={saveEditing}
+            onCancel={() => setEditing(null)}
+          />
         )}
-
-        {!editing &&
-          state.schedules.map((s) => (
-            <div key={s.id} className="schedule-row">
-              <div className="schedule-row__info">
-                <strong>{s.name}</strong>
-                <span>
-                  {s.blocks.length} block{s.blocks.length === 1 ? '' : 's'} · {formatDuration(totalDuration(s))}
-                </span>
-              </div>
-              <div className="schedule-row__actions">
-                <button className="btn btn--primary" onClick={() => sendCommand({ type: 'startSchedule', scheduleId: s.id })}>
-                  Start
-                </button>
-                <button className="btn btn--chip" onClick={() => setEditing(s)}>
-                  Edit
-                </button>
-                <button className="btn btn--chip" onClick={() => sendCommand({ type: 'deleteSchedule', id: s.id })}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
       </div>
-
-      {editing && (
-        <ScheduleEditor
-          schedule={editing}
-          onChange={setEditing}
-          onSave={saveEditing}
-          onCancel={() => setEditing(null)}
-        />
-      )}
     </section>
   );
 }

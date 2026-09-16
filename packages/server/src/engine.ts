@@ -2,6 +2,7 @@ import { nanoid } from 'nanoid';
 import type {
   ColorState,
   ColorThresholds,
+  DisplaySettings,
   EngineState,
   Preset,
   QuickMessage,
@@ -10,7 +11,7 @@ import type {
   BlockProjection,
   TimerMode,
 } from '@cueclock/shared';
-import { DEFAULT_THRESHOLDS } from '@cueclock/shared';
+import { DEFAULT_THRESHOLDS, DEFAULT_DISPLAY_SETTINGS } from '@cueclock/shared';
 
 export class EngineError extends Error {}
 
@@ -28,6 +29,7 @@ export interface EnginePersistedState {
   quickMessages: QuickMessage[];
   schedules: Schedule[];
   thresholds: ColorThresholds;
+  displaySettings: DisplaySettings;
 }
 
 export type Clock = () => number;
@@ -47,6 +49,7 @@ export class Engine {
   private durationSeconds = 0;
   private message: string | null = null;
   private thresholds: ColorThresholds;
+  private displaySettings: DisplaySettings;
 
   private presets: Preset[];
   private quickMessages: QuickMessage[];
@@ -66,6 +69,7 @@ export class Engine {
     this.quickMessages = persisted?.quickMessages ?? [];
     this.schedules = persisted?.schedules ?? [];
     this.thresholds = persisted?.thresholds ?? { ...DEFAULT_THRESHOLDS };
+    this.displaySettings = persisted?.displaySettings ?? { ...DEFAULT_DISPLAY_SETTINGS };
   }
 
   getPersistedState(): EnginePersistedState {
@@ -74,6 +78,7 @@ export class Engine {
       quickMessages: this.quickMessages,
       schedules: this.schedules,
       thresholds: this.thresholds,
+      displaySettings: this.displaySettings,
     };
   }
 
@@ -117,6 +122,21 @@ export class Engine {
     if (durationSeconds <= 0) throw new EngineError('Duration must be positive');
     this.mode = 'quick';
     this.running = true;
+    this.durationSeconds = durationSeconds;
+    this.baseRemainingSeconds = durationSeconds;
+    this.lastChangeMs = now;
+    this.activeSchedule = null;
+    this.activeBlockIndex = null;
+    this.activeBlockStartedAtMs = null;
+    this.completedBlocks = [];
+    this.message = null;
+  }
+
+  /** Sets a quick timer's duration without starting it, so an operator can arm a preset and start it explicitly. */
+  armQuick(durationSeconds: number, now: number = this.clock()) {
+    if (durationSeconds <= 0) throw new EngineError('Duration must be positive');
+    this.mode = 'quick';
+    this.running = false;
     this.durationSeconds = durationSeconds;
     this.baseRemainingSeconds = durationSeconds;
     this.lastChangeMs = now;
@@ -255,6 +275,10 @@ export class Engine {
     this.thresholds = thresholds;
   }
 
+  setDisplaySettings(settings: DisplaySettings) {
+    this.displaySettings = settings;
+  }
+
   // ---- library management (presets / quick messages / schedules) ----
 
   savePreset(name: string, durationSeconds: number): Preset {
@@ -335,8 +359,11 @@ export class Engine {
       } else if (idx === this.activeBlockIndex) {
         const remaining = this.computeRemaining(now);
         const startedAt = this.activeBlockStartedAtMs ?? now;
+        // Once a block runs into overtime we can no longer predict when it will actually
+        // end, but we still project "if it ended right now" so downstream blocks keep
+        // sliding forward live instead of showing stale/unknown times.
         const projectedEndMs =
-          remaining > 0 ? now + (remaining / (this.speedPercent / 100)) * 1000 : null;
+          remaining > 0 ? now + (remaining / (this.speedPercent / 100)) * 1000 : now;
         result.push({
           blockId: block.id,
           name: block.name,
@@ -384,6 +411,7 @@ export class Engine {
       durationSeconds: this.durationSeconds,
       colorState: this.colorStateFor(remainingSeconds),
       thresholds: this.thresholds,
+      displaySettings: this.displaySettings,
       activeSchedule: this.activeSchedule,
       activeBlockId:
         this.activeBlockIndex !== null && this.activeSchedule

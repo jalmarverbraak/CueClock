@@ -49,6 +49,23 @@ export interface Preset {
   durationSeconds: number;
 }
 
+export type DisplayMode = 'timer' | 'clock';
+
+export interface DisplaySettings {
+  /** Whether the display's main readout shows the countdown timer or the current time of day. */
+  mode: DisplayMode;
+  /** Whether the active schedule block's name is shown on the display. */
+  showBlockName: boolean;
+  /** Whether the current time of day is shown in small text below the timer (only relevant when mode is 'timer'). */
+  showTimeBelow: boolean;
+}
+
+export const DEFAULT_DISPLAY_SETTINGS: DisplaySettings = {
+  mode: 'timer',
+  showBlockName: true,
+  showTimeBelow: false,
+};
+
 export interface QuickMessage {
   id: string;
   text: string;
@@ -72,6 +89,7 @@ export interface EngineState {
   durationSeconds: number;
   colorState: ColorState;
   thresholds: ColorThresholds;
+  displaySettings: DisplaySettings;
 
   activeSchedule: Schedule | null;
   activeBlockId: string | null;
@@ -92,6 +110,7 @@ export interface EngineState {
 
 export type Command =
   | { type: 'startQuick'; durationSeconds: number }
+  | { type: 'armQuick'; durationSeconds: number }
   | { type: 'startBlock'; scheduleId: string; blockId: string }
   | { type: 'startSchedule'; scheduleId: string }
   | { type: 'nextBlock' }
@@ -102,6 +121,7 @@ export type Command =
   | { type: 'setSpeed'; speedPercent: number }
   | { type: 'setMessage'; text: string | null }
   | { type: 'setThresholds'; thresholds: ColorThresholds }
+  | { type: 'setDisplaySettings'; settings: DisplaySettings }
   | { type: 'savePreset'; name: string; durationSeconds: number }
   | { type: 'deletePreset'; id: string }
   | { type: 'saveQuickMessage'; text: string }

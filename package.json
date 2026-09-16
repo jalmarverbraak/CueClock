@@ -14,7 +14,7 @@
     "dev:server": "npm run dev -w packages/server",
     "dev:web": "npm run dev -w packages/web",
     "test": "npm run test -w packages/server",
-    "electron:dev": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/web && npm run start -w packages/electron",
+    "electron:dev": "npm run build -w packages/shared && npm run build -w packages/server && npm run build -w packages/web && npm run build -w packages/electron && npm run start -w packages/electron",
     "electron:build": "npm run build && npm run build -w packages/electron && npm run dist -w packages/electron"
   },
   "devDependencies": {

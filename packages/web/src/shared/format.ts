@@ -11,7 +11,7 @@ export function formatDuration(totalSeconds: number): string {
 export function formatClock(epochMs: number | null): string {
   if (epochMs === null) return '--:--';
   const d = new Date(epochMs);
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
 /** Accepts "mm:ss", "hh:mm:ss", or a bare number of minutes. Returns whole seconds, or null if unparsable. */

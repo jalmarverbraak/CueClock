@@ -22,23 +22,12 @@
 }
 
 .display--overtime {
-  background: #3a0806;
+  color: #ff3b30;
+}
+
+.display--keyfill {
+  background: #000000;
   color: #ffffff;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { background-color: #3a0806; }
-  50% { background-color: #6b0d09; }
-}
-
-.display__clock {
-  position: absolute;
-  top: max(24px, env(safe-area-inset-top, 0px));
-  right: 32px;
-  font-size: clamp(1rem, 2vw, 1.75rem);
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
 }
 
 .display__main {
@@ -56,18 +45,10 @@
   letter-spacing: -0.02em;
 }
 
-.display__idle {
-  font-size: clamp(3rem, 8vw, 6rem);
-  font-weight: 600;
-  opacity: 0.35;
-  letter-spacing: 0.05em;
-}
-
-.display__status-label {
-  font-size: clamp(1rem, 2.2vw, 1.75rem);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  opacity: 0.75;
+.display__time-below {
+  font-size: clamp(1.25rem, 3vw, 2.5rem);
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
 }
 
 .display__block-name {
@@ -97,15 +78,6 @@
   opacity: 0.5;
 }
 
-.display__speed {
-  position: absolute;
-  top: max(24px, env(safe-area-inset-top, 0px));
-  left: 32px;
-  font-size: clamp(0.9rem, 1.6vw, 1.3rem);
-  opacity: 0.6;
-  font-variant-numeric: tabular-nums;
-}
-
 .display__banner {
   position: absolute;
   top: 0;
@@ -122,12 +94,20 @@
   color: white;
 }
 
-.display__fullscreen-hint {
+.display__keyfill-toggle {
   position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  font-size: 0.85rem;
-  opacity: 0.35;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  right: 10px;
+  border: none;
+  background: transparent;
+  color: currentColor;
+  opacity: 0.12;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 1;
+}
+
+.display__keyfill-toggle:hover {
+  opacity: 0.5;
 }

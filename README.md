@@ -15,7 +15,10 @@ the Control panel or the Display.
 - **Ahead/behind schedule tracking**: a running total of how far off the plan you are, based on how blocks actually ran versus how long they were supposed to take.
 - **Messages**: push a custom or saved quick message to the display at any time.
 - **Warning colors & overtime**: configurable amber/red thresholds; the display flips fully red and counts up once a timer goes past zero.
-- **Presets**: save frequently used quick-timer durations and messages for one-click reuse.
+- **Presets**: unnamed duration chips for one-click reuse — clicking one *arms* the quick timer at that duration (it shows on the display, paused) without starting it, so the operator decides exactly when to hit Start.
+- **Timer/Clock display toggle**: the fullscreen output shows either the countdown or the current time of day, switched from Control → Settings. The display never shows any "CueClock" branding text - just the timer or the clock.
+- **Key/Fill output**: any display window (including a dedicated third screen/window) can be flipped to a plain black-background/white-text mode for chroma-keying into a video switcher, via a subtle corner toggle on the display itself or a `?mode=key` URL.
+- **Display settings**: independent toggles for whether the active schedule block's name is shown, and whether a small time-of-day readout appears below the countdown.
 - **Bitfocus Companion integration**: a real Companion module (actions + live feedback + variables), plus a plain HTTP API for anyone who'd rather wire it up with Companion's built-in Generic HTTP module.
 
 ## Project layout
@@ -60,6 +63,11 @@ Open `http://localhost:8420/control.html` for the operator panel and
 `http://localhost:8420/display.html` for the fullscreen display — from any device
 on the same network, not just the machine running the server. The Control panel's
 top bar shows the LAN address to use from other devices.
+
+In the Electron app, the **Outputs** menu opens the Display on a second monitor
+(fullscreen) or in a window, and separately opens a Key/Fill output (`display.html?mode=key`)
+on a third monitor or in a window — useful for feeding a video switcher a plain
+black/white keyable timer alongside the normal-color audience display.
 
 ## Building installers
 
