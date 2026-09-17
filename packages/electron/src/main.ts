@@ -56,6 +56,11 @@ function createControlWindow(port: number) {
   controlWindow.loadURL(`http://localhost:${port}/control.html`);
   controlWindow.on('closed', () => {
     controlWindow = null;
+    // Control is the operator's only way to drive the show - closing it should end the
+    // whole session, including any fullscreen output windows on other monitors, rather
+    // than leaving them running with nothing controlling them (or, on macOS, leaving
+    // the app alive in the dock with no windows).
+    app.quit();
   });
 }
 
@@ -94,10 +99,10 @@ function openOutputWindow(options: {
     // than via setFullScreen() after load, so there's no windowed frame ever
     // shown mid-transition on the way to fullscreen.
     fullscreen: !!target,
-    // Matches display.html's own background so any repaint before the page's
-    // own CSS background applies (or on displays where fullscreen fails) never
-    // flashes Electron's native black compositor surface through as a bar.
-    backgroundColor: '#05070a',
+    // Matches display.html's own background (pure black, same as key/fill) so any
+    // repaint before the page's own CSS background applies (or on displays where
+    // fullscreen fails) never flashes a mismatched color through as a bar.
+    backgroundColor: '#000000',
     webPreferences: {
       // These windows are almost never focused (the operator lives in Control) and
       // often sit on a secondary/projector output. Chromium throttles rendering on
