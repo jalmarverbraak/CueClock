@@ -1,6 +1,6 @@
 {
   "name": "@cueclock/electron",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "CueClock desktop app - control panel and fullscreen output display",
   "author": {
