@@ -1,7 +1,9 @@
 import { app, BrowserWindow, Menu, screen, dialog } from 'electron';
+import type { Display, MenuItemConstructorOptions } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import path from 'node:path';
 import type { createServer as CreateServerFn } from '@cueclock/server';
+import { loadPrefs, savePrefs, type ElectronPrefs } from './prefs';
 
 // The server is bundled to a single dependency-free file at build time (see
 // scripts/prepare-vendor.js) so packaging doesn't have to fight npm-workspace
@@ -17,6 +19,27 @@ let controlWindow: BrowserWindow | null = null;
 let displayWindow: BrowserWindow | null = null;
 let keyFillWindow: BrowserWindow | null = null;
 let resolvedPort = BASE_PORT;
+let prefs: ElectronPrefs = {};
+
+/** A short, human-identifiable label for a monitor - resolution and position, since Electron
+ * doesn't reliably expose a real display name on every platform. */
+function describeDisplay(d: Display, index: number): string {
+  const primary = d.id === screen.getPrimaryDisplay().id ? ' · Primary' : '';
+  return `Display ${index + 1} — ${d.size.width}×${d.size.height} at (${d.bounds.x}, ${d.bounds.y})${primary}`;
+}
+
+/** Resolves a saved preferred Display.id to its current index in screen.getAllDisplays(),
+ * if that monitor is still connected - otherwise falls back to the given default resolver
+ * (e.g. "first non-primary"), so unplugging a monitor never leaves outputs unable to open. */
+function resolveDisplayIndex(preferredId: number | undefined, fallback: () => number): number | null {
+  const displays = screen.getAllDisplays();
+  if (preferredId !== undefined) {
+    const idx = displays.findIndex((d) => d.id === preferredId);
+    if (idx !== -1) return idx;
+  }
+  const fallbackIdx = fallback();
+  return fallbackIdx === -1 ? null : fallbackIdx;
+}
 
 function listenWithFallback(
   httpServer: import('node:http').Server,
@@ -67,6 +90,7 @@ function createControlWindow(port: number) {
 /** Opens (or focuses) an output window loading display.html, optionally fullscreened on a specific monitor. */
 function openOutputWindow(options: {
   existing: BrowserWindow | null;
+  getWindow: () => BrowserWindow | null;
   setWindow: (w: BrowserWindow | null) => void;
   port: number;
   urlPath: string;
@@ -117,37 +141,77 @@ function openOutputWindow(options: {
   win.webContents.on('before-input-event', (_event, input) => {
     if (input.type === 'keyDown' && input.key === 'Escape') win.close();
   });
-  win.on('closed', () => options.setWindow(null));
+  // Guard against a stale/replaced window's own 'closed' event firing after a newer
+  // window has already taken its place (e.g. closing+reopening on a different monitor
+  // via setPreferredDisplay) and clobbering that newer window's reference back to null.
+  win.on('closed', () => {
+    if (options.getWindow() === win) options.setWindow(null);
+  });
   options.setWindow(win);
   return win;
 }
 
 function openDisplayWindow(port: number, { fullscreenOnSecondary }: { fullscreenOnSecondary: boolean }) {
-  const displays = screen.getAllDisplays();
-  const secondaryIndex = displays.findIndex((d) => d.id !== screen.getPrimaryDisplay().id);
+  const index = fullscreenOnSecondary
+    ? resolveDisplayIndex(prefs.preferredDisplayId, () => {
+        const displays = screen.getAllDisplays();
+        return displays.findIndex((d) => d.id !== screen.getPrimaryDisplay().id);
+      })
+    : null;
   displayWindow = openOutputWindow({
     existing: displayWindow,
+    getWindow: () => displayWindow,
     setWindow: (w) => (displayWindow = w),
     port,
     urlPath: '/display.html',
     title: 'CueClock — Display',
-    preferredDisplayIndex: fullscreenOnSecondary && secondaryIndex !== -1 ? secondaryIndex : null,
+    preferredDisplayIndex: index,
   });
 }
 
 function openKeyFillWindow(port: number, { fullscreenOnThird }: { fullscreenOnThird: boolean }) {
-  const displays = screen.getAllDisplays();
-  const primaryId = screen.getPrimaryDisplay().id;
-  const nonPrimaryIndexes = displays.map((d, i) => i).filter((i) => displays[i].id !== primaryId);
-  const thirdIndex = nonPrimaryIndexes[1] ?? nonPrimaryIndexes[0] ?? -1;
+  const index = fullscreenOnThird
+    ? resolveDisplayIndex(prefs.preferredKeyFillDisplayId, () => {
+        const displays = screen.getAllDisplays();
+        const primaryId = screen.getPrimaryDisplay().id;
+        const nonPrimaryIndexes = displays.map((d, i) => i).filter((i) => displays[i].id !== primaryId);
+        return nonPrimaryIndexes[1] ?? nonPrimaryIndexes[0] ?? -1;
+      })
+    : null;
   keyFillWindow = openOutputWindow({
     existing: keyFillWindow,
+    getWindow: () => keyFillWindow,
     setWindow: (w) => (keyFillWindow = w),
     port,
     urlPath: '/display.html?mode=key',
     title: 'CueClock — Key/Fill Output',
-    preferredDisplayIndex: fullscreenOnThird && thirdIndex !== -1 ? thirdIndex : null,
+    preferredDisplayIndex: index,
   });
+}
+
+/** Sets which monitor an output defaults to, persists it, and - if that output window is
+ * already open - closes and reopens it there immediately so the change is visible right away. */
+function setPreferredDisplay(kind: 'display' | 'keyFill', displayId: number, port: number) {
+  if (kind === 'display') {
+    prefs.preferredDisplayId = displayId;
+    savePrefs(app.getPath('userData'), prefs);
+    if (displayWindow) {
+      const stale = displayWindow;
+      displayWindow = null; // avoid openDisplayWindow below racing the 'closed' event and reusing the closing window
+      stale.close();
+      openDisplayWindow(port, { fullscreenOnSecondary: true });
+    }
+  } else {
+    prefs.preferredKeyFillDisplayId = displayId;
+    savePrefs(app.getPath('userData'), prefs);
+    if (keyFillWindow) {
+      const stale = keyFillWindow;
+      keyFillWindow = null;
+      stale.close();
+      openKeyFillWindow(port, { fullscreenOnThird: true });
+    }
+  }
+  buildMenu(port);
 }
 
 // Update metadata (app-update.yml) only exists in a real packaged build - electron-builder
@@ -227,6 +291,19 @@ function checkForUpdates(options: { manual: boolean }) {
   autoUpdater.checkForUpdates().catch((err) => reportUpdateError(err));
 }
 
+/** Builds a submenu listing every connected monitor as a checkable item for choosing which
+ * one an output defaults to opening fullscreen on. */
+function buildDisplayPickerSubmenu(kind: 'display' | 'keyFill', port: number): MenuItemConstructorOptions[] {
+  const displays = screen.getAllDisplays();
+  const preferredId = kind === 'display' ? prefs.preferredDisplayId : prefs.preferredKeyFillDisplayId;
+  return displays.map((d, i) => ({
+    label: describeDisplay(d, i),
+    type: 'checkbox',
+    checked: preferredId === d.id,
+    click: () => setPreferredDisplay(kind, d.id, port),
+  }));
+}
+
 function buildMenu(port: number) {
   Menu.setApplicationMenu(
     Menu.buildFromTemplate([
@@ -272,6 +349,15 @@ function buildMenu(port: number) {
             label: 'Close Key/Fill Window',
             click: () => keyFillWindow?.close(),
           },
+          { type: 'separator' },
+          {
+            label: 'Default Display Output To',
+            submenu: buildDisplayPickerSubmenu('display', port),
+          },
+          {
+            label: 'Default Key/Fill Output To',
+            submenu: buildDisplayPickerSubmenu('keyFill', port),
+          },
         ],
       },
       {
@@ -303,12 +389,19 @@ function buildMenu(port: number) {
 }
 
 app.whenReady().then(async () => {
+  prefs = loadPrefs(app.getPath('userData'));
   const port = await startServer();
   createControlWindow(port);
   buildMenu(port);
   if (screen.getAllDisplays().length > 1) {
     openDisplayWindow(port, { fullscreenOnSecondary: true });
   }
+
+  // Keeps the "Default Display/Key-Fill Output To" submenus (and their checkmarks) in
+  // sync with monitors actually being plugged/unplugged, rather than only refreshing
+  // the next time some other action happens to rebuild the menu.
+  screen.on('display-added', () => buildMenu(port));
+  screen.on('display-removed', () => buildMenu(port));
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createControlWindow(port);
