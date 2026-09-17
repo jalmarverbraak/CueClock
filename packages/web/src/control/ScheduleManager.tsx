@@ -142,7 +142,8 @@ function RunningRundown({ state, sendCommand }: Props) {
               </td>
               <td>{b.status}</td>
               <td>
-                {formatClock(b.projectedStartMs)} → {formatClock(b.projectedEndMs)}
+                {formatClock(b.projectedStartMs, { use24h: state.timerSettings.use24HourClock })} →{' '}
+                {formatClock(b.projectedEndMs, { use24h: state.timerSettings.use24HourClock })}
               </td>
               <td>
                 {b.status !== 'active' && state.activeSchedule && (

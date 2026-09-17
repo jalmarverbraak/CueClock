@@ -1,4 +1,4 @@
-import type { Command, DisplaySettings, DisplayTextStyle, EngineState } from '@cueclock/shared';
+import type { Command, DisplaySettings, DisplayTextStyle, EngineState, TimerSettings } from '@cueclock/shared';
 import { ThresholdsPanel } from './ThresholdsPanel';
 import { DisplayStyleEditor } from './DisplayStyleEditor';
 
@@ -15,13 +15,45 @@ function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
 
 export function SettingsView({ state, sendCommand }: Props) {
   const settings = state.displaySettings;
+  const timerSettings = state.timerSettings;
 
   function update(patch: Partial<DisplaySettings>) {
     sendCommand({ type: 'setDisplaySettings', settings: { ...settings, ...patch } });
   }
 
+  function updateTimerSettings(patch: Partial<TimerSettings>) {
+    sendCommand({ type: 'setTimerSettings', settings: { ...timerSettings, ...patch } });
+  }
+
   return (
     <div className="settings">
+      <section className="panel">
+        <h2>Timer Behavior</h2>
+
+        <div className="toggle-row">
+          <div>
+            <div className="toggle-row__label">Stop at zero</div>
+            <div className="toggle-row__hint">
+              Pauses automatically at 00:00 instead of continuing into overtime (minus time)
+            </div>
+          </div>
+          <Switch on={timerSettings.stopAtZero} onToggle={() => updateTimerSettings({ stopAtZero: !timerSettings.stopAtZero })} />
+        </div>
+
+        <div className="toggle-row">
+          <div>
+            <div className="toggle-row__label">24-hour clock</div>
+            <div className="toggle-row__hint">
+              Show wall-clock times (clock display, ends-at, schedule times) as 24H instead of 12H AM/PM
+            </div>
+          </div>
+          <Switch
+            on={timerSettings.use24HourClock}
+            onToggle={() => updateTimerSettings({ use24HourClock: !timerSettings.use24HourClock })}
+          />
+        </div>
+      </section>
+
       <section className="panel">
         <h2>Display</h2>
         <p className="panel__hint">

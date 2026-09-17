@@ -8,15 +8,17 @@ export function formatDuration(totalSeconds: number): string {
   return h > 0 ? `${sign}${h}:${pad(m)}:${pad(s)}` : `${sign}${pad(m)}:${pad(s)}`;
 }
 
-export function formatClock(epochMs: number | null, opts: { seconds?: boolean } = {}): string {
+export function formatClock(epochMs: number | null, opts: { seconds?: boolean; use24h?: boolean } = {}): string {
   if (epochMs === null) return '--:--';
   const d = new Date(epochMs);
-  return d.toLocaleTimeString(
-    [],
-    opts.seconds
-      ? { hour: '2-digit', minute: '2-digit', second: '2-digit' }
-      : { hour: '2-digit', minute: '2-digit' },
-  );
+  return d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(opts.seconds ? { second: '2-digit' } : {}),
+    // Explicit either way - without this, hour12 falls back to the browser's locale
+    // default, so the same toggle could silently show differently on different machines.
+    hour12: !opts.use24h,
+  });
 }
 
 /** Accepts "mm:ss", "hh:mm:ss", or a bare number of minutes. Returns whole seconds, or null if unparsable. */

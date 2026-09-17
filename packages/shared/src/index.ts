@@ -17,6 +17,18 @@ export const DEFAULT_THRESHOLDS: ColorThresholds = {
   criticalAtSeconds: 30,
 };
 
+export interface TimerSettings {
+  /** Whether a running timer automatically pauses itself at 00:00 instead of continuing into overtime (negative/minus time). */
+  stopAtZero: boolean;
+  /** Whether wall-clock times (the clock display, ends-at, schedule times) render in 24-hour or 12-hour format. */
+  use24HourClock: boolean;
+}
+
+export const DEFAULT_TIMER_SETTINGS: TimerSettings = {
+  stopAtZero: false,
+  use24HourClock: false,
+};
+
 export interface ScheduleBlock {
   id: string;
   name: string;
@@ -253,6 +265,7 @@ export interface EngineState {
   colorState: ColorState;
   thresholds: ColorThresholds;
   displaySettings: DisplaySettings;
+  timerSettings: TimerSettings;
 
   activeSchedule: Schedule | null;
   activeBlockId: string | null;
@@ -285,6 +298,7 @@ export type Command =
   | { type: 'setSpeed'; speedPercent: number }
   | { type: 'setMessage'; text: string | null }
   | { type: 'setThresholds'; thresholds: ColorThresholds }
+  | { type: 'setTimerSettings'; settings: TimerSettings }
   | { type: 'setDisplaySettings'; settings: DisplaySettings }
   | { type: 'savePreset'; name: string; durationSeconds: number }
   | { type: 'deletePreset'; id: string }

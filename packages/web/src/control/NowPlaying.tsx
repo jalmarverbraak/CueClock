@@ -78,7 +78,7 @@ export function NowPlaying({ state, sendCommand }: Props) {
 
       {endsAtMs !== null && (
         <div className="now-playing__ends-at">
-          {isOver ? 'Ended at' : 'Ends at'} {formatClock(endsAtMs, { seconds: true })}
+          {isOver ? 'Ended at' : 'Ends at'} {formatClock(endsAtMs, { seconds: true, use24h: state.timerSettings.use24HourClock })}
         </div>
       )}
 
