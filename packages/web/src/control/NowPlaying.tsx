@@ -153,52 +153,50 @@ export function NowPlaying({ state, sendCommand }: Props) {
         </div>
       </div>
 
-      {!isIdle && (
-        <div className="now-playing__row">
-          <span className="now-playing__row-label">Speed ({state.speedPercent}%)</span>
-          <div className="adjust-grid">
-            <div className="adjust-grid__row adjust-grid__row--speed">
-              {SPEED_STEPS.map((delta) => (
-                <button
-                  key={`minus-${delta}`}
-                  className="adjust-btn adjust-btn--minus"
-                  onClick={() => applySpeed(state.speedPercent - delta)}
-                >
-                  −{delta}%
-                </button>
-              ))}
-            </div>
-            <div className="adjust-grid__row adjust-grid__row--speed">
-              {SPEED_STEPS.map((delta) => (
-                <button
-                  key={`plus-${delta}`}
-                  className="adjust-btn adjust-btn--plus"
-                  onClick={() => applySpeed(state.speedPercent + delta)}
-                >
-                  +{delta}%
-                </button>
-              ))}
-            </div>
+      <div className="now-playing__row">
+        <span className="now-playing__row-label">Speed ({state.speedPercent}%)</span>
+        <div className="adjust-grid">
+          <div className="adjust-grid__row adjust-grid__row--speed">
+            {SPEED_STEPS.map((delta) => (
+              <button
+                key={`minus-${delta}`}
+                className="adjust-btn adjust-btn--minus"
+                onClick={() => applySpeed(state.speedPercent - delta)}
+              >
+                −{delta}%
+              </button>
+            ))}
           </div>
-          <div className="now-playing__buttons">
-            <button className="btn btn--chip" onClick={() => applySpeed(100)}>
-              Reset to 100%
-            </button>
-            <input
-              className="now-playing__speed-input"
-              placeholder="custom %"
-              value={speedInput}
-              onChange={(e) => setSpeedInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && speedInput.trim()) {
-                  applySpeed(Number(speedInput));
-                  setSpeedInput('');
-                }
-              }}
-            />
+          <div className="adjust-grid__row adjust-grid__row--speed">
+            {SPEED_STEPS.map((delta) => (
+              <button
+                key={`plus-${delta}`}
+                className="adjust-btn adjust-btn--plus"
+                onClick={() => applySpeed(state.speedPercent + delta)}
+              >
+                +{delta}%
+              </button>
+            ))}
           </div>
         </div>
-      )}
+        <div className="now-playing__buttons">
+          <button className="btn btn--chip" onClick={() => applySpeed(100)}>
+            Reset to 100%
+          </button>
+          <input
+            className="now-playing__speed-input"
+            placeholder="custom %"
+            value={speedInput}
+            onChange={(e) => setSpeedInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && speedInput.trim()) {
+                applySpeed(Number(speedInput));
+                setSpeedInput('');
+              }
+            }}
+          />
+        </div>
+      </div>
 
       <div className="now-playing__transport">
         {state.running ? (
