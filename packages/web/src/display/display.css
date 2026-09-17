@@ -63,10 +63,10 @@
 
 .display__timer {
   font-size: calc(clamp(6rem, 22vw, 22rem) * var(--scale, 1));
-  font-weight: 700;
+  /* font-weight and letter-spacing are set inline from DisplayTextStyle (via the
+     .display__timer-wrap parent) and inherit down - not set here so they don't fight it. */
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
 }
 
 .display__timer--flash {

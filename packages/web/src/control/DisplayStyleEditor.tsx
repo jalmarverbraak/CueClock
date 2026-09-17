@@ -1,4 +1,4 @@
-import { DISPLAY_FONT_FAMILIES, type DisplayPosition, type DisplayTextStyle } from '@cueclock/shared';
+import { DISPLAY_FONT_FAMILIES, DISPLAY_FONT_WEIGHTS, type DisplayPosition, type DisplayTextStyle } from '@cueclock/shared';
 
 const POSITIONS: DisplayPosition[] = [
   'top-left',
@@ -14,6 +14,8 @@ const POSITIONS: DisplayPosition[] = [
 
 const SIZE_MIN = 25;
 const SIZE_MAX = 800;
+const SPACING_MIN = -0.1;
+const SPACING_MAX = 0.3;
 
 const SYSTEM_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'system');
 const GOOGLE_FONTS = DISPLAY_FONT_FAMILIES.filter((f) => f.source === 'google');
@@ -56,8 +58,17 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
                   {f.label}
                 </option>
               ))}
+              <option value="custom">Custom Google Font…</option>
             </optgroup>
           </select>
+          {style.fontFamily === 'custom' && (
+            <input
+              className="text-input"
+              placeholder="Exact Google Fonts name, e.g. Montserrat"
+              value={style.customGoogleFont ?? ''}
+              onChange={(e) => patch({ customGoogleFont: e.target.value })}
+            />
+          )}
         </label>
 
         <label className="style-editor__field">
@@ -114,6 +125,52 @@ export function DisplayStyleEditor({ title, style, allowAuto, onChange }: Props)
               }}
             />
             <span>%</span>
+          </div>
+        </label>
+      </div>
+
+      <div className="style-editor__row">
+        <label className="style-editor__field">
+          <span>Weight</span>
+          <select
+            className="text-input"
+            value={style.weight}
+            onChange={(e) => patch({ weight: Number(e.target.value) as DisplayTextStyle['weight'] })}
+          >
+            {DISPLAY_FONT_WEIGHTS.map((w) => (
+              <option key={w} value={w}>
+                {w}
+                {w === 400 ? ' (Regular)' : w === 700 ? ' (Bold)' : ''}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="style-editor__field">
+          <span>Letter spacing</span>
+          <div className="style-editor__size">
+            <input
+              type="range"
+              min={SPACING_MIN}
+              max={SPACING_MAX}
+              step={0.01}
+              value={style.letterSpacingEm}
+              onChange={(e) => patch({ letterSpacingEm: Number(e.target.value) })}
+            />
+            <input
+              type="number"
+              className="text-input style-editor__size-input"
+              min={SPACING_MIN}
+              max={SPACING_MAX}
+              step={0.01}
+              value={style.letterSpacingEm}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (Number.isNaN(value)) return;
+                patch({ letterSpacingEm: Math.min(SPACING_MAX, Math.max(SPACING_MIN, value)) });
+              }}
+            />
+            <span>em</span>
           </div>
         </label>
       </div>

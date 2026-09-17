@@ -155,16 +155,32 @@ export const DISPLAY_FONT_FAMILIES = [
     googleFamily: 'Barlow Condensed',
     css: "'Barlow Condensed', 'Arial Narrow', sans-serif",
   },
+  {
+    // No fixed googleFamily/css - resolved at runtime from DisplayTextStyle.customGoogleFont.
+    id: 'custom',
+    label: 'Custom Google Font…',
+    source: 'google-custom',
+    css: 'sans-serif',
+  },
 ] as const;
 
 export type DisplayFontFamily = (typeof DISPLAY_FONT_FAMILIES)[number]['id'];
 
+/** Weights actually requested from Google Fonts and offered in the weight picker - most Google Fonts support this full range, and browsers safely ignore an axis a given family doesn't have. */
+export const DISPLAY_FONT_WEIGHTS = [300, 400, 500, 600, 700, 800, 900] as const;
+export type DisplayFontWeight = (typeof DISPLAY_FONT_WEIGHTS)[number];
+
 export interface DisplayTextStyle {
   fontFamily: DisplayFontFamily;
+  /** The Google Font family name to load/use when fontFamily is 'custom', e.g. "Montserrat". Ignored otherwise. */
+  customGoogleFont: string | null;
   /** A CSS color, or 'auto' to keep the automatic normal/warning/critical/overtime coloring (only meaningful for the timer). */
   color: string;
   /** Percentage of the default size, e.g. 100 = default, 50 = half, 200 = double. */
   sizePercent: number;
+  weight: DisplayFontWeight;
+  /** Letter-spacing in em units. Can be negative (tighter, common for large display numerals) or positive (wider). */
+  letterSpacingEm: number;
   position: DisplayPosition;
 }
 
@@ -187,15 +203,21 @@ export interface DisplaySettings {
 
 export const DEFAULT_TIMER_STYLE: DisplayTextStyle = {
   fontFamily: 'system',
+  customGoogleFont: null,
   color: 'auto',
   sizePercent: 100,
+  weight: 700,
+  letterSpacingEm: -0.02,
   position: 'center',
 };
 
 export const DEFAULT_TIME_BELOW_STYLE: DisplayTextStyle = {
   fontFamily: 'system',
+  customGoogleFont: null,
   color: '#f2f2f2',
   sizePercent: 100,
+  weight: 400,
+  letterSpacingEm: 0,
   position: 'bottom-center',
 };
 
