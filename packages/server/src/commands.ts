@@ -42,6 +42,9 @@ export function applyCommand(engine: Engine, command: Command): void {
     case 'setThresholds':
       engine.setThresholds(command.thresholds);
       return;
+    case 'setTimerSettings':
+      engine.setTimerSettings(command.settings);
+      return;
     case 'setDisplaySettings':
       engine.setDisplaySettings(command.settings);
       return;

@@ -10,8 +10,9 @@ import type {
   ScheduleBlock,
   BlockProjection,
   TimerMode,
+  TimerSettings,
 } from '@cueclock/shared';
-import { DEFAULT_THRESHOLDS, normalizeDisplaySettings } from '@cueclock/shared';
+import { DEFAULT_THRESHOLDS, DEFAULT_TIMER_SETTINGS, normalizeDisplaySettings } from '@cueclock/shared';
 
 export class EngineError extends Error {}
 
@@ -30,6 +31,7 @@ export interface EnginePersistedState {
   schedules: Schedule[];
   thresholds: ColorThresholds;
   displaySettings: DisplaySettings;
+  timerSettings: TimerSettings;
 }
 
 export type Clock = () => number;
@@ -50,6 +52,7 @@ export class Engine {
   private message: string | null = null;
   private thresholds: ColorThresholds;
   private displaySettings: DisplaySettings;
+  private timerSettings: TimerSettings;
 
   private presets: Preset[];
   private quickMessages: QuickMessage[];
@@ -70,6 +73,7 @@ export class Engine {
     this.schedules = persisted?.schedules ?? [];
     this.thresholds = persisted?.thresholds ?? { ...DEFAULT_THRESHOLDS };
     this.displaySettings = normalizeDisplaySettings(persisted?.displaySettings);
+    this.timerSettings = { ...DEFAULT_TIMER_SETTINGS, ...persisted?.timerSettings };
   }
 
   getPersistedState(): EnginePersistedState {
@@ -79,6 +83,7 @@ export class Engine {
       schedules: this.schedules,
       thresholds: this.thresholds,
       displaySettings: this.displaySettings,
+      timerSettings: this.timerSettings,
     };
   }
 
@@ -293,6 +298,10 @@ export class Engine {
     this.displaySettings = normalizeDisplaySettings(settings);
   }
 
+  setTimerSettings(settings: TimerSettings) {
+    this.timerSettings = settings;
+  }
+
   // ---- library management (presets / quick messages / schedules) ----
 
   savePreset(name: string, durationSeconds: number): Preset {
@@ -352,6 +361,23 @@ export class Engine {
   }
 
   // ---- derived state for clients ----
+
+  /**
+   * When stopAtZero is on, a running quick/block timer auto-pauses itself the moment it
+   * would otherwise cross into overtime, landing exactly at 00:00 instead of the default
+   * behavior of continuing to count into negative/minus time. State is always derived from
+   * a wall-clock baseline rather than ticked by an interval, so this check runs on read
+   * (here, in getState) rather than needing a background timer of its own - it takes
+   * effect the moment anyone next asks for state after the crossing.
+   */
+  private maybeAutoStopAtZero(now: number) {
+    if (!this.running || !this.timerSettings.stopAtZero) return;
+    if (this.mode !== 'quick' && this.mode !== 'block') return;
+    if (this.computeRemaining(now) > 0) return;
+    this.baseRemainingSeconds = 0;
+    this.lastChangeMs = now;
+    this.running = false;
+  }
 
   private colorStateFor(remaining: number): ColorState {
     if (this.mode === 'idle' || this.mode === 'countup') return 'normal';
@@ -448,6 +474,7 @@ export class Engine {
   }
 
   getState(now: number = this.clock()): EngineState {
+    this.maybeAutoStopAtZero(now);
     const remainingSeconds = this.computeRemaining(now);
     return {
       mode: this.mode,
@@ -458,6 +485,7 @@ export class Engine {
       colorState: this.colorStateFor(remainingSeconds),
       thresholds: this.thresholds,
       displaySettings: this.displaySettings,
+      timerSettings: this.timerSettings,
       activeSchedule: this.activeSchedule,
       activeBlockId:
         this.activeBlockIndex !== null && this.activeSchedule

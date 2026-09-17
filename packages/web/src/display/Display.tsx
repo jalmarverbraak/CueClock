@@ -74,12 +74,14 @@ export function Display() {
   // so it always ends up timer-then-clock, top-to-bottom.
   const samePosition = timeBelowVisible && displaySettings!.timerStyle.position === displaySettings!.timeBelowStyle.position;
 
+  const use24h = state?.timerSettings.use24HourClock ?? false;
+
   const timeBelowNode = timeBelowVisible && (
     <div
       className={`display__time-below ${samePosition ? '' : `pos-${displaySettings!.timeBelowStyle.position}`}`}
       style={textStyleVars(displaySettings!.timeBelowStyle, !keyFill)}
     >
-      {formatClock(now)}
+      {formatClock(now, { use24h })}
     </div>
   );
 
@@ -100,7 +102,7 @@ export function Display() {
           style={textStyleVars(displaySettings.timerStyle, !keyFill)}
         >
           <div className={`display__timer ${flashing ? 'display__timer--flash' : ''}`}>
-            {showClock ? formatClock(now) : formatDuration(timerSeconds)}
+            {showClock ? formatClock(now, { use24h }) : formatDuration(timerSeconds)}
           </div>
           {!showClock && displaySettings.showBlockName && activeBlock && (
             <div className="display__block-name">{activeBlock.name}</div>
@@ -116,7 +118,7 @@ export function Display() {
 
       {!samePosition && timeBelowNode}
 
-      {state?.message && <div className="display__message">{state.message}</div>}
+      {!keyFill && state?.message && <div className="display__message">{state.message}</div>}
 
       <button
         className="display__keyfill-toggle"
