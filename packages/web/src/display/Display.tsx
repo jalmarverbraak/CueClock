@@ -1,31 +1,59 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
-import { DISPLAY_FONT_FAMILIES, type DisplayFontFamily, type DisplayTextStyle } from '@cueclock/shared';
+import { DISPLAY_FONT_FAMILIES, DISPLAY_FONT_WEIGHTS, type DisplayTextStyle } from '@cueclock/shared';
 import { useEngineSocket } from '../shared/useEngineSocket';
 import { formatClock, formatDuration } from '../shared/format';
 import './display.css';
 
-function fontDef(id: DisplayFontFamily) {
-  return DISPLAY_FONT_FAMILIES.find((f) => f.id === id) ?? DISPLAY_FONT_FAMILIES[0];
+type FontRef = Pick<DisplayTextStyle, 'fontFamily' | 'customGoogleFont'>;
+
+/** The actual Google Fonts family name to load/use, or null for a system font (or an empty custom-font field). */
+function googleFamilyFor(style: FontRef): string | null {
+  if (style.fontFamily === 'custom') return style.customGoogleFont?.trim() || null;
+  const def = DISPLAY_FONT_FAMILIES.find((f) => f.id === style.fontFamily);
+  return def?.source === 'google' ? def.googleFamily : null;
+}
+
+function fontFamilyCss(style: FontRef): string {
+  const googleFamily = googleFamilyFor(style);
+  if (style.fontFamily === 'custom') return googleFamily ? `'${googleFamily}', sans-serif` : DISPLAY_FONT_FAMILIES[0].css;
+  return (DISPLAY_FONT_FAMILIES.find((f) => f.id === style.fontFamily) ?? DISPLAY_FONT_FAMILIES[0]).css;
 }
 
 const loadedGoogleFonts = new Set<string>();
 
 /** Injects a Google Fonts <link> the first time a given font is actually selected. No-ops for system fonts. */
-function ensureGoogleFontLoaded(id: DisplayFontFamily) {
-  const def = fontDef(id);
-  if (def.source !== 'google' || loadedGoogleFonts.has(def.googleFamily)) return;
-  loadedGoogleFonts.add(def.googleFamily);
+function ensureGoogleFontLoaded(style: FontRef) {
+  const family = googleFamilyFor(style);
+  if (!family || loadedGoogleFonts.has(family)) return;
+  loadedGoogleFonts.add(family);
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = `https://fonts.googleapis.com/css2?family=${def.googleFamily.replace(/ /g, '+')}:wght@400;700&display=swap`;
+  // Request every weight the picker offers, not just 400/700, since weight is now
+  // user-selectable - browsers safely ignore any axis a given family doesn't have.
+  link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}:wght@${DISPLAY_FONT_WEIGHTS.join(';')}&display=swap`;
   document.head.appendChild(link);
 }
 
+/** fontFamily/color/scale only - safe to put on a wrapping element, since child elements
+ * at a different font-size (e.g. the block-name line under the giant timer digits) should
+ * inherit these but not the weight/letter-spacing below (those are sized for the digits). */
 function textStyleVars(style: DisplayTextStyle, colorOverride: boolean): CSSProperties {
   return {
-    fontFamily: fontDef(style.fontFamily).css,
+    fontFamily: fontFamilyCss(style),
     ...(colorOverride && style.color !== 'auto' ? { color: style.color } : {}),
     ['--scale' as string]: style.sizePercent / 100,
+  };
+}
+
+/** fontWeight/letterSpacing, meant to be applied directly to the actual sized text element -
+ * NOT a wrapper around it. letter-spacing's "em" resolves against whichever element it's
+ * declared on, so putting it on a wrapper with a normal (~16px) font-size while the real
+ * text is 20x larger in a child would compute a barely-visible spacing instead of the
+ * intended one, since CSS inherits the already-resolved pixel value, not the "em" itself. */
+function scaledTextStyleVars(style: DisplayTextStyle): CSSProperties {
+  return {
+    fontWeight: style.weight,
+    letterSpacing: `${style.letterSpacingEm}em`,
   };
 }
 
@@ -43,9 +71,14 @@ export function Display() {
 
   useEffect(() => {
     if (!displaySettings) return;
-    ensureGoogleFontLoaded(displaySettings.timerStyle.fontFamily);
-    ensureGoogleFontLoaded(displaySettings.timeBelowStyle.fontFamily);
-  }, [displaySettings?.timerStyle.fontFamily, displaySettings?.timeBelowStyle.fontFamily]);
+    ensureGoogleFontLoaded(displaySettings.timerStyle);
+    ensureGoogleFontLoaded(displaySettings.timeBelowStyle);
+  }, [
+    displaySettings?.timerStyle.fontFamily,
+    displaySettings?.timerStyle.customGoogleFont,
+    displaySettings?.timeBelowStyle.fontFamily,
+    displaySettings?.timeBelowStyle.customGoogleFont,
+  ]);
 
   const nextBlock = useMemo(
     () => state?.blockProjections.find((b) => b.status === 'upcoming') ?? null,
@@ -77,7 +110,7 @@ export function Display() {
   const timeBelowNode = timeBelowVisible && (
     <div
       className={`display__time-below ${samePosition ? '' : `pos-${displaySettings!.timeBelowStyle.position}`}`}
-      style={textStyleVars(displaySettings!.timeBelowStyle, !keyFill)}
+      style={{ ...textStyleVars(displaySettings!.timeBelowStyle, !keyFill), ...scaledTextStyleVars(displaySettings!.timeBelowStyle) }}
     >
       {formatClock(now)}
     </div>
@@ -99,7 +132,10 @@ export function Display() {
           className={`display__timer-wrap pos-${displaySettings.timerStyle.position}`}
           style={textStyleVars(displaySettings.timerStyle, !keyFill)}
         >
-          <div className={`display__timer ${flashing ? 'display__timer--flash' : ''}`}>
+          <div
+            className={`display__timer ${flashing ? 'display__timer--flash' : ''}`}
+            style={scaledTextStyleVars(displaySettings.timerStyle)}
+          >
             {showClock ? formatClock(now) : formatDuration(timerSeconds)}
           </div>
           {!showClock && displaySettings.showBlockName && activeBlock && (

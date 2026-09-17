@@ -380,7 +380,15 @@ describe('display settings', () => {
       displaySettings: { mode: 'timer', showBlockName: true, showTimeBelow: false } as never,
     });
     const settings = engine.getState(T0).displaySettings;
-    expect(settings.timerStyle).toEqual({ fontFamily: 'system', color: 'auto', sizePercent: 100, position: 'center' });
+    expect(settings.timerStyle).toEqual({
+      fontFamily: 'system',
+      customGoogleFont: null,
+      color: 'auto',
+      sizePercent: 100,
+      weight: 700,
+      letterSpacingEm: -0.02,
+      position: 'center',
+    });
     expect(settings.timeBelowStyle.position).toBe('bottom-center');
     expect(settings.showNextBlock).toBe(true);
     expect(settings.flashOnOvertime).toBe(false);
