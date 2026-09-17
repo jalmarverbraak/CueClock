@@ -295,6 +295,45 @@ describe('schedules', () => {
   });
 });
 
+describe('stop-at-zero timer setting', () => {
+  it('does nothing by default - a quick timer still runs into overtime', () => {
+    const engine = new Engine(() => T0);
+    engine.startQuick(5, T0);
+    const state = engine.getState(T0 + 8_000);
+    expect(state.remainingSeconds).toBeCloseTo(-3, 5);
+    expect(state.running).toBe(true);
+  });
+
+  it('auto-pauses exactly at zero once enabled, instead of continuing negative', () => {
+    const engine = new Engine(() => T0);
+    engine.setTimerSettings({ stopAtZero: true, use24HourClock: false });
+    engine.startQuick(5, T0);
+    const state = engine.getState(T0 + 8_000);
+    expect(state.remainingSeconds).toBe(0);
+    expect(state.running).toBe(false);
+  });
+
+  it('does not affect count-up mode, which has no target duration', () => {
+    const engine = new Engine(() => T0);
+    engine.setTimerSettings({ stopAtZero: true, use24HourClock: false });
+    engine.startCountUp(T0);
+    const state = engine.getState(T0 + 10_000);
+    expect(state.remainingSeconds).toBeCloseTo(-10, 5);
+    expect(state.running).toBe(true);
+  });
+
+  it('applies to schedule blocks too', () => {
+    const engine = new Engine(() => T0);
+    engine.setTimerSettings({ stopAtZero: true, use24HourClock: false });
+    engine.saveSchedule({ id: '', name: 'S', blocks: [{ id: '', name: 'B', durationSeconds: 5, startTimeMinutes: null, endTimeMinutes: null }] });
+    const [schedule] = engine.getState(T0).schedules;
+    engine.startSchedule(schedule.id, T0);
+    const state = engine.getState(T0 + 20_000);
+    expect(state.remainingSeconds).toBe(0);
+    expect(state.running).toBe(false);
+  });
+});
+
 describe('reset', () => {
   it('returns to idle and clears active schedule/timer state, and resets speed to 100', () => {
     const engine = new Engine(() => T0);
