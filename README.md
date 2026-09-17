@@ -129,8 +129,11 @@ the actual `@companion-module/base` SDK). It gives you:
   match the display's current normal/warning/critical/overtime state (great for a
   traffic-light row of buttons).
 - **Variables**: `remaining_time`, `remaining_seconds`, `color_state`,
-  `active_block_name`, `schedule_offset`, `speed_percent`, `message` — all update
-  live over the same WebSocket the Display uses.
+  `active_block_name`, `schedule_offset`, `speed_percent`, `speed_minute_duration`,
+  `finish_time`, `message` — all update live over the same WebSocket the Display
+  uses. `finish_time` is the clock time the countdown will hit zero;
+  `speed_minute_duration` is how long one countdown-minute takes in real time at
+  the current speed.
 
 To use it in Companion (self-build/dev mode, since it isn't published to the
 Companion module registry yet):
