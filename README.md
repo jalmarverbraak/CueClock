@@ -135,8 +135,20 @@ the actual `@companion-module/base` SDK). It gives you:
   `speed_minute_duration` is how long one countdown-minute takes in real time at
   the current speed.
 
-To use it in Companion (self-build/dev mode, since it isn't published to the
-Companion module registry yet):
+It isn't published to the Companion module registry yet, so load it one of two ways:
+
+**Option A — Companion's "Import module package" button** (simplest for day-to-day use):
+
+```bash
+cd packages/companion-module
+npm install
+npm run package
+```
+
+This produces `cueclock-<version>.tgz` in `packages/companion-module`. In Companion,
+go to Modules → Import module package and select that file.
+
+**Option B — developer mode** (for actively editing the module's code):
 
 ```bash
 cd packages/companion-module
@@ -145,8 +157,10 @@ npm run build
 ```
 
 Then point Companion's module developer mode at this folder (Companion looks for
-`companion/manifest.json` + the built `dist/main.js`), add a CueClock connection, and
-set the host/port to match where CueClock is running (default port `8420`).
+`companion/manifest.json` + the built `dist/main.js`).
+
+Either way, add a CueClock connection and set the host/port to match where CueClock
+is running (default port `8420`).
 
 ## Notes on the schedule/offset model
 
