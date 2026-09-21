@@ -27,10 +27,15 @@ function addTransportPresets(presets: PresetDefinitions): string[] {
 	}
 	presets.resume = {
 		type: 'simple',
-		name: 'Resume',
-		style: { text: 'Resume', size: '18', color: TEXT_COLOR, bgcolor: NEUTRAL_COLOR },
+		name: 'Play / Resume',
+		// Starts an open-ended count-up when idle, otherwise resumes the paused timer -
+		// see the resume action's callback.
+		style: { text: 'Play /\nResume', size: '14', color: TEXT_COLOR, bgcolor: NEUTRAL_COLOR },
 		steps: [{ down: [{ actionId: 'resume', options: {} }], up: [] }],
-		feedbacks: [{ feedbackId: 'run_state', options: { state: 'paused' }, style: RUN_STYLE.paused }],
+		feedbacks: [
+			{ feedbackId: 'run_state', options: { state: 'paused' }, style: RUN_STYLE.paused },
+			{ feedbackId: 'run_state', options: { state: 'idle' }, style: RUN_STYLE.idle },
+		],
 	}
 	presets.reset = {
 		type: 'simple',

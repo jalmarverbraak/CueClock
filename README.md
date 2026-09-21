@@ -108,6 +108,7 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 | `GET /api/actions/pause` | | Pause the running timer |
 | `GET /api/actions/resume` | | Resume |
 | `GET /api/actions/reset` | | Stop and clear the current timer/schedule |
+| `GET /api/actions/start-countup` | | Start an open-ended count-up stopwatch (no target duration) |
 | `GET /api/actions/next-block` | | Advance to the next schedule block |
 | `GET /api/actions/add-time` | `seconds` (can be negative) | Add/remove time from the running timer |
 | `GET /api/actions/set-speed` | `percent` (25-400) | Set the countdown speed |
@@ -125,18 +126,20 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 `packages/companion-module` is a real Companion module (built and validated against
 the actual `@companion-module/base` SDK). It gives you:
 
-- **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed (%),
-  Adjust Speed (±%), Start Quick Timer and Arm Quick Timer (both with
+- **Actions**: Pause, Play/Resume, Reset, Next Block, Add/Remove Time, Set Speed
+  (%), Adjust Speed (±%), Start Quick Timer and Arm Quick Timer (both with
   hours/minutes/seconds fields — Arm sets the duration, paused, without starting
   it), Arm Preset (dropdown of your saved CueClock presets — also sets the duration
   without starting it), Toggle Clock/Timer Display, Send Message, Clear Message.
+  Play/Resume mirrors the Control panel's own button: with nothing armed or
+  running, it starts an open-ended count-up instead of failing.
 - **Feedback**: "Timer Color State" (normal/warning/critical/overtime), "Run State"
   (idle/running/paused/overtime), and "Display Mode" (timer/clock) — boolean
   feedbacks you can put on any button so it lights up to match what CueClock is
   currently doing.
 - **Presets** (ready-made buttons you can drag onto a page), grouped into:
-  - **Transport**: Pause and Resume (each highlights when that's the current run
-    state), Reset, Next Block.
+  - **Transport**: Pause and Play/Resume (each highlights when that's the current
+    run state), Reset, Next Block.
   - **Add / Remove Time**: matches the Control panel's own step sizes
     (±10s/1m/5m/10m/1h).
   - **Speed**: ±1%/±5%/±10% adjustments matching the Control panel's speed steps,

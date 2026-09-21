@@ -25,9 +25,17 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async () => self.callAction('/api/actions/pause'),
 		},
 		resume: {
-			name: 'Resume',
+			name: 'Play / Resume',
 			options: [],
-			callback: async () => self.callAction('/api/actions/resume'),
+			callback: async () => {
+				// Mirrors the Control panel's own Play/Resume button: when nothing is
+				// armed or running, "resume" has nothing to resume (the server
+				// rejects it), so start an open-ended count-up timer instead.
+				if (self.getState()?.mode === 'idle') {
+					return self.callAction('/api/actions/start-countup')
+				}
+				return self.callAction('/api/actions/resume')
+			},
 		},
 		reset: {
 			name: 'Reset',

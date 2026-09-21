@@ -133,6 +133,7 @@ function registerActionRoutes(
   route('get', '/api/actions/pause', () => ({ type: 'pause' }));
   route('get', '/api/actions/resume', () => ({ type: 'resume' }));
   route('get', '/api/actions/reset', () => ({ type: 'reset' }));
+  route('get', '/api/actions/start-countup', () => ({ type: 'startCountUp' }));
   route('get', '/api/actions/next-block', () => ({ type: 'nextBlock' }));
   route('get', '/api/actions/add-time', (q) => ({
     type: 'addSeconds',
