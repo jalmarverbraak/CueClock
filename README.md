@@ -113,6 +113,7 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 | `GET /api/actions/set-speed` | `percent` (25-400) | Set the countdown speed |
 | `GET /api/actions/set-message` | `text` | Show (or clear, with an empty string) a message on the display |
 | `GET /api/actions/start-quick` | `seconds` | Start a quick timer |
+| `GET /api/actions/arm-quick` | `seconds` | Set a quick timer's duration, paused, without starting it |
 | `GET /api/actions/start-schedule` | `id` | Start a saved schedule from block 1 |
 | `GET /api/actions/jump-block` | `scheduleId`, `blockId` | Jump directly to a block in the running schedule |
 | `GET /api/actions/toggle-display-mode` | | Flip the display between showing the countdown timer and the current time of day |
@@ -125,9 +126,10 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 the actual `@companion-module/base` SDK). It gives you:
 
 - **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed (%),
-  Adjust Speed (±%), Start Quick Timer (hours/minutes/seconds fields), Start Preset
-  (dropdown of your saved CueClock presets), Toggle Clock/Timer Display, Send
-  Message, Clear Message.
+  Adjust Speed (±%), Start Quick Timer and Arm Quick Timer (both with
+  hours/minutes/seconds fields — Arm sets the duration, paused, without starting
+  it), Arm Preset (dropdown of your saved CueClock presets — also sets the duration
+  without starting it), Toggle Clock/Timer Display, Send Message, Clear Message.
 - **Feedback**: "Timer Color State" (normal/warning/critical/overtime), "Run State"
   (idle/running/paused/overtime), and "Display Mode" (timer/clock) — boolean
   feedbacks you can put on any button so it lights up to match what CueClock is
@@ -141,8 +143,10 @@ the actual `@companion-module/base` SDK). It gives you:
     plus a Reset Speed to 100% button showing the live speed on its own face.
   - **Display & Message**: Toggle Clock/Timer Display (highlights which mode is
     active) and Clear Message.
-  - **CueClock Presets**: one button per saved CueClock preset that starts it
-    immediately. Regenerates automatically whenever your saved presets change.
+  - **CueClock Presets**: one button per saved CueClock preset that arms it (sets
+    the duration, paused) without starting it — matching how presets behave in the
+    Control panel, so the operator decides exactly when to hit Start/Resume.
+    Regenerates automatically whenever your saved presets change.
 - **Variables**: `remaining_time`, `remaining_seconds`, `remaining_hh`,
   `remaining_mm`, `remaining_ss`, `color_state`, `run_state`, `display_mode`,
   `active_block_name`, `schedule_offset`, `speed_percent`, `speed_minute_duration`,

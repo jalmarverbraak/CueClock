@@ -131,17 +131,20 @@ function addDisplayAndMessagePresets(presets: PresetDefinitions): string[] {
 function addCueClockPresetButtons(self: ModuleInstance, presets: PresetDefinitions): string[] {
 	const ids: string[] = []
 	for (const preset of self.getState()?.presets ?? []) {
-		const id = `start_preset_${preset.id}`
+		const id = `arm_preset_${preset.id}`
 		presets[id] = {
 			type: 'simple',
-			name: `Start preset: ${preset.name}`,
+			name: `Arm preset: ${preset.name}`,
 			style: {
 				text: `${preset.name}\n${formatDuration(preset.durationSeconds)}`,
 				size: '14',
 				color: TEXT_COLOR,
 				bgcolor: PRESET_COLOR,
 			},
-			steps: [{ down: [{ actionId: 'start_preset', options: { id: preset.id } }], up: [] }],
+			// Arms (sets the duration, paused) rather than starting immediately,
+			// matching how presets behave in the Control panel - the operator
+			// decides exactly when to hit Start/Resume.
+			steps: [{ down: [{ actionId: 'arm_preset', options: { id: preset.id } }], up: [] }],
 			feedbacks: [],
 		}
 		ids.push(id)

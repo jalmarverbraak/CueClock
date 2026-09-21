@@ -150,6 +150,10 @@ function registerActionRoutes(
     type: 'startQuick',
     durationSeconds: Number(q.seconds ?? '0'),
   }));
+  route('get', '/api/actions/arm-quick', (q) => ({
+    type: 'armQuick',
+    durationSeconds: Number(q.seconds ?? '0'),
+  }));
   route('get', '/api/actions/start-schedule', (q) => ({
     type: 'startSchedule',
     scheduleId: q.id,

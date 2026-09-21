@@ -10,7 +10,8 @@ export type ActionsSchema = {
 	set_speed: { options: { percent: number } }
 	adjust_speed: { options: { delta: number } }
 	start_quick: { options: { hours: number; minutes: number; seconds: number } }
-	start_preset: { options: { id: string } }
+	arm_quick: { options: { hours: number; minutes: number; seconds: number } }
+	arm_preset: { options: { id: string } }
 	toggle_display_mode: { options: Record<string, never> }
 	send_message: { options: { text: string } }
 	clear_message: { options: Record<string, never> }
@@ -97,8 +98,21 @@ export function UpdateActions(self: ModuleInstance): void {
 				return self.callAction('/api/actions/start-quick', { seconds: totalSeconds })
 			},
 		},
-		start_preset: {
-			name: 'Start Preset',
+		arm_quick: {
+			name: 'Arm Quick Timer (set duration, do not start)',
+			options: [
+				{ id: 'hours', type: 'number', label: 'Hours', default: 0, min: 0, max: 24 },
+				{ id: 'minutes', type: 'number', label: 'Minutes', default: 5, min: 0, max: 59 },
+				{ id: 'seconds', type: 'number', label: 'Seconds', default: 0, min: 0, max: 59 },
+			],
+			callback: async (event) => {
+				const totalSeconds =
+					Number(event.options.hours) * 3600 + Number(event.options.minutes) * 60 + Number(event.options.seconds)
+				return self.callAction('/api/actions/arm-quick', { seconds: totalSeconds })
+			},
+		},
+		arm_preset: {
+			name: 'Arm Preset (set duration, do not start)',
 			options: [
 				{
 					id: 'id',
@@ -114,10 +128,10 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async (event) => {
 				const preset = self.getState()?.presets.find((p) => p.id === event.options.id)
 				if (!preset) {
-					self.log('warn', `Start Preset: unknown or not-yet-loaded preset id "${event.options.id}"`)
+					self.log('warn', `Arm Preset: unknown or not-yet-loaded preset id "${event.options.id}"`)
 					return
 				}
-				return self.callAction('/api/actions/start-quick', { seconds: preset.durationSeconds })
+				return self.callAction('/api/actions/arm-quick', { seconds: preset.durationSeconds })
 			},
 		},
 		toggle_display_mode: {
