@@ -143,6 +143,9 @@ the actual `@companion-module/base` SDK). It gives you:
     plus a Reset Speed to 100% button showing the live speed on its own face.
   - **Display & Message**: Toggle Clock/Timer Display (highlights which mode is
     active) and Clear Message.
+  - **Remaining Time (HH / MM / SS)**: three display-only buttons, one per
+    `remaining_hh`/`remaining_mm`/`remaining_ss` variable, so dragging all three
+    next to each other reads as one big HH:MM:SS clock.
   - **CueClock Presets**: one button per saved CueClock preset that arms it (sets
     the duration, paused) without starting it — matching how presets behave in the
     Control panel, so the operator decides exactly when to hit Start/Resume.

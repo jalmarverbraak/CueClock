@@ -128,6 +128,26 @@ function addDisplayAndMessagePresets(presets: PresetDefinitions): string[] {
 	return ['toggle_display_mode', 'clear_message']
 }
 
+function addRemainingTimeDisplayPresets(presets: PresetDefinitions): string[] {
+	const components: { id: string; label: string; variable: string }[] = [
+		{ id: 'remaining_display_hh', label: 'Remaining Time - Hours', variable: 'remaining_hh' },
+		{ id: 'remaining_display_mm', label: 'Remaining Time - Minutes', variable: 'remaining_mm' },
+		{ id: 'remaining_display_ss', label: 'Remaining Time - Seconds', variable: 'remaining_ss' },
+	]
+	for (const { id, label, variable } of components) {
+		presets[id] = {
+			type: 'simple',
+			name: label,
+			// Display-only - no action, just the live value, so three of these
+			// dragged next to each other read as one HH:MM:SS clock.
+			style: { text: `$(self:${variable})`, size: '44', color: TEXT_COLOR, bgcolor: NEUTRAL_COLOR },
+			steps: [{ down: [], up: [] }],
+			feedbacks: [],
+		}
+	}
+	return components.map((c) => c.id)
+}
+
 function addCueClockPresetButtons(self: ModuleInstance, presets: PresetDefinitions): string[] {
 	const ids: string[] = []
 	for (const preset of self.getState()?.presets ?? []) {
@@ -159,6 +179,7 @@ export function UpdatePresetDefinitions(self: ModuleInstance): void {
 	const timeAdjustIds = addTimeAdjustPresets(presets)
 	const speedIds = addSpeedPresets(presets)
 	const displayAndMessageIds = addDisplayAndMessagePresets(presets)
+	const remainingTimeDisplayIds = addRemainingTimeDisplayPresets(presets)
 	const cueclockPresetIds = addCueClockPresetButtons(self, presets)
 
 	self.setPresetDefinitions(
@@ -167,6 +188,7 @@ export function UpdatePresetDefinitions(self: ModuleInstance): void {
 			{ id: 'time_adjust', name: 'Add / Remove Time', definitions: timeAdjustIds },
 			{ id: 'speed', name: 'Speed', definitions: speedIds },
 			{ id: 'display_message', name: 'Display & Message', definitions: displayAndMessageIds },
+			{ id: 'remaining_time_display', name: 'Remaining Time (HH / MM / SS)', definitions: remainingTimeDisplayIds },
 			{ id: 'cueclock_presets', name: 'CueClock Presets', definitions: cueclockPresetIds },
 		],
 		presets,
