@@ -104,7 +104,12 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		})
 
 		ws.addEventListener('close', () => this.scheduleReconnect())
-		ws.addEventListener('error', () => ws.close())
+		ws.addEventListener('error', () => {
+			// The socket already transitions to closed on its own after an error;
+			// calling ws.close() here recurses into Node's WebSocket error dispatch
+			// and blows the call stack.
+			this.log('error', `WebSocket error connecting to ${this.baseUrl}`)
+		})
 	}
 
 	private scheduleReconnect(): void {
