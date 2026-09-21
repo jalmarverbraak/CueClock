@@ -10,6 +10,14 @@ export interface BlockProjection {
 	status: 'done' | 'active' | 'upcoming'
 }
 
+export type DisplayMode = 'timer' | 'clock'
+
+export interface PresetInfo {
+	id: string
+	name: string
+	durationSeconds: number
+}
+
 export interface CueClockState {
 	mode: 'idle' | 'quick' | 'block' | 'countup'
 	running: boolean
@@ -19,6 +27,8 @@ export interface CueClockState {
 	message: string | null
 	scheduleOffsetSeconds: number | null
 	blockProjections: BlockProjection[]
+	presets: PresetInfo[]
+	displaySettings: { mode: DisplayMode }
 }
 
 export function formatDuration(totalSeconds: number): string {
@@ -59,4 +69,31 @@ export function computeFinishTime(state: CueClockState): Date | null {
 export function speedMinuteRealSeconds(speedPercent: number): number {
 	if (speedPercent <= 0) return 0
 	return (60 * 100) / speedPercent
+}
+
+export type RunState = 'idle' | 'running' | 'paused' | 'overtime'
+
+export function computeRunState(state: CueClockState): RunState {
+	if (state.mode === 'idle') return 'idle'
+	if (state.remainingSeconds < 0) return 'overtime'
+	return state.running ? 'running' : 'paused'
+}
+
+export interface TimeParts {
+	hours: number
+	minutes: number
+	seconds: number
+}
+
+export function splitDuration(totalSeconds: number): TimeParts {
+	const abs = Math.ceil(Math.abs(totalSeconds))
+	return {
+		hours: Math.floor(abs / 3600),
+		minutes: Math.floor((abs % 3600) / 60),
+		seconds: abs % 60,
+	}
+}
+
+export function pad2(n: number): string {
+	return n.toString().padStart(2, '0')
 }

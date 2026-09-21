@@ -3,6 +3,7 @@ import { GetConfigFields, type ModuleConfig } from './config.js'
 import { UpdateVariableDefinitions, PushVariableValues, type VariablesSchema } from './variables.js'
 import { UpdateActions, type ActionsSchema } from './actions.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
+import { UpdatePresetDefinitions } from './presets.js'
 import type { CueClockState } from './cueclockState.js'
 
 export type ModuleSchema = {
@@ -21,6 +22,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 	private reconnectTimer: ReturnType<typeof setTimeout> | null = null
 	private destroyed = false
 	private state: CueClockState | null = null
+	private lastPresetsKey: string | null = null
 
 	constructor(internal: unknown) {
 		super(internal)
@@ -33,6 +35,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 		this.updateActions()
 		this.updateFeedbacks()
 		this.updateVariableDefinitions()
+		this.updatePresetDefinitions()
 
 		this.connect()
 	}
@@ -97,6 +100,16 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 					this.state = data.state
 					this.updateVariables()
 					this.checkFeedbacks('color_state')
+
+					const presetsKey = JSON.stringify(data.state.presets)
+					if (presetsKey !== this.lastPresetsKey) {
+						this.lastPresetsKey = presetsKey
+						// The "Start Preset" action's dropdown and the ready-made preset
+						// buttons are both generated from CueClock's saved presets, so
+						// both need refreshing whenever that list changes.
+						this.updateActions()
+						this.updatePresetDefinitions()
+					}
 				}
 			} catch {
 				// ignore malformed frames
@@ -129,6 +142,10 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 
 	updateVariableDefinitions(): void {
 		UpdateVariableDefinitions(this)
+	}
+
+	updatePresetDefinitions(): void {
+		UpdatePresetDefinitions(this)
 	}
 
 	updateVariables(): void {

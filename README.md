@@ -115,6 +115,7 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 | `GET /api/actions/start-quick` | `seconds` | Start a quick timer |
 | `GET /api/actions/start-schedule` | `id` | Start a saved schedule from block 1 |
 | `GET /api/actions/jump-block` | `scheduleId`, `blockId` | Jump directly to a block in the running schedule |
+| `GET /api/actions/toggle-display-mode` | | Flip the display between showing the countdown timer and the current time of day |
 
 **Full state / info**: `GET /api/state`, `GET /api/info` (version, port, LAN addresses).
 
@@ -124,16 +125,28 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 the actual `@companion-module/base` SDK). It gives you:
 
 - **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed, Start
-  Quick Timer, Send Message, Clear Message.
+  Quick Timer (hours/minutes/seconds fields), Start Preset (dropdown of your saved
+  CueClock presets), Toggle Clock/Timer Display, Send Message, Clear Message.
 - **Feedback**: "Timer Color State" — a boolean feedback so a button lights up to
   match the display's current normal/warning/critical/overtime state (great for a
   traffic-light row of buttons).
-- **Variables**: `remaining_time`, `remaining_seconds`, `color_state`,
+- **Presets** (ready-made buttons you can drag onto a page): an Add/Remove Time row
+  matching the Control panel's own step sizes (±10s/1m/5m/10m/1h), plus one button
+  per saved CueClock preset that starts it immediately. The preset buttons regenerate
+  automatically whenever your saved presets change.
+- **Variables**: `remaining_time`, `remaining_seconds`, `remaining_hh`,
+  `remaining_mm`, `remaining_ss`, `color_state`, `run_state`, `display_mode`,
   `active_block_name`, `schedule_offset`, `speed_percent`, `speed_minute_duration`,
   `finish_time`, `message` — all update live over the same WebSocket the Display
-  uses. `finish_time` is the clock time the countdown will hit zero;
-  `speed_minute_duration` is how long one countdown-minute takes in real time at
-  the current speed.
+  uses.
+  - `remaining_hh`/`remaining_mm`/`remaining_ss` are the hours/minutes/seconds
+    components of the remaining time (2-digit strings), so you can build a
+    three-button "clock" readout out of them.
+  - `run_state` is `idle`/`running`/`paused`/`overtime`.
+  - `display_mode` is `timer` or `clock`, matching the Toggle Clock/Timer action.
+  - `finish_time` is the clock time the countdown will hit zero;
+    `speed_minute_duration` is how long one countdown-minute takes in real time at
+    the current speed.
 
 It isn't published to the Companion module registry yet, so load it one of two ways:
 

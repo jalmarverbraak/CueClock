@@ -1,4 +1,5 @@
 import type ModuleInstance from './main.js'
+import { formatDuration } from './cueclockState.js'
 
 export type ActionsSchema = {
 	pause: { options: Record<string, never> }
@@ -7,7 +8,9 @@ export type ActionsSchema = {
 	next_block: { options: Record<string, never> }
 	add_time: { options: { seconds: number } }
 	set_speed: { options: { percent: number } }
-	start_quick: { options: { seconds: number } }
+	start_quick: { options: { hours: number; minutes: number; seconds: number } }
+	start_preset: { options: { id: string } }
+	toggle_display_mode: { options: Record<string, never> }
 	send_message: { options: { text: string } }
 	clear_message: { options: Record<string, never> }
 }
@@ -65,16 +68,43 @@ export function UpdateActions(self: ModuleInstance): void {
 		start_quick: {
 			name: 'Start Quick Timer',
 			options: [
+				{ id: 'hours', type: 'number', label: 'Hours', default: 0, min: 0, max: 24 },
+				{ id: 'minutes', type: 'number', label: 'Minutes', default: 5, min: 0, max: 59 },
+				{ id: 'seconds', type: 'number', label: 'Seconds', default: 0, min: 0, max: 59 },
+			],
+			callback: async (event) => {
+				const totalSeconds =
+					Number(event.options.hours) * 3600 + Number(event.options.minutes) * 60 + Number(event.options.seconds)
+				return self.callAction('/api/actions/start-quick', { seconds: totalSeconds })
+			},
+		},
+		start_preset: {
+			name: 'Start Preset',
+			options: [
 				{
-					id: 'seconds',
-					type: 'number',
-					label: 'Duration in seconds',
-					default: 300,
-					min: 1,
-					max: 86400,
+					id: 'id',
+					type: 'dropdown',
+					label: 'Preset',
+					default: self.getState()?.presets[0]?.id ?? '',
+					choices: (self.getState()?.presets ?? []).map((p) => ({
+						id: p.id,
+						label: `${p.name} (${formatDuration(p.durationSeconds)})`,
+					})),
 				},
 			],
-			callback: async (event) => self.callAction('/api/actions/start-quick', { seconds: event.options.seconds }),
+			callback: async (event) => {
+				const preset = self.getState()?.presets.find((p) => p.id === event.options.id)
+				if (!preset) {
+					self.log('warn', `Start Preset: unknown or not-yet-loaded preset id "${event.options.id}"`)
+					return
+				}
+				return self.callAction('/api/actions/start-quick', { seconds: preset.durationSeconds })
+			},
+		},
+		toggle_display_mode: {
+			name: 'Toggle Clock / Timer Display',
+			options: [],
+			callback: async () => self.callAction('/api/actions/toggle-display-mode'),
 		},
 		send_message: {
 			name: 'Send Message to Display',

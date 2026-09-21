@@ -4,7 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
-import type { Command } from '@cueclock/shared';
+import type { Command, EngineState } from '@cueclock/shared';
 import { Engine, EngineError } from './engine';
 import { Store } from './store';
 import { applyCommand } from './commands';
@@ -88,7 +88,7 @@ export function createServer(options: CreateServerOptions = {}) {
     });
   });
 
-  registerActionRoutes(app, runCommand);
+  registerActionRoutes(app, runCommand, () => engine.getState());
 
   if (options.webDist && fs.existsSync(options.webDist)) {
     app.use(express.static(options.webDist));
@@ -108,7 +108,11 @@ export function createServer(options: CreateServerOptions = {}) {
 }
 
 /** Simple GET-friendly action routes, primarily for Bitfocus Companion (Generic HTTP module). */
-function registerActionRoutes(app: express.Express, runCommand: (c: Command) => void) {
+function registerActionRoutes(
+  app: express.Express,
+  runCommand: (c: Command) => void,
+  getState: () => EngineState,
+) {
   const route = (
     method: 'get' | 'post',
     urlPath: string,
@@ -155,6 +159,13 @@ function registerActionRoutes(app: express.Express, runCommand: (c: Command) => 
     scheduleId: q.scheduleId,
     blockId: q.blockId,
   }));
+  route('get', '/api/actions/toggle-display-mode', () => {
+    const current = getState().displaySettings;
+    return {
+      type: 'setDisplaySettings',
+      settings: { ...current, mode: current.mode === 'timer' ? 'clock' : 'timer' },
+    };
+  });
 }
 
 function getLanUrls(port: number): string[] {
