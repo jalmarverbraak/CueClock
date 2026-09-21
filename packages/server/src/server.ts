@@ -4,7 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import { WebSocketServer, WebSocket } from 'ws';
-import type { Command } from '@cueclock/shared';
+import type { Command, EngineState } from '@cueclock/shared';
 import { Engine, EngineError } from './engine';
 import { Store } from './store';
 import { applyCommand } from './commands';
@@ -88,7 +88,7 @@ export function createServer(options: CreateServerOptions = {}) {
     });
   });
 
-  registerActionRoutes(app, runCommand);
+  registerActionRoutes(app, runCommand, () => engine.getState());
 
   if (options.webDist && fs.existsSync(options.webDist)) {
     app.use(express.static(options.webDist));
@@ -108,7 +108,11 @@ export function createServer(options: CreateServerOptions = {}) {
 }
 
 /** Simple GET-friendly action routes, primarily for Bitfocus Companion (Generic HTTP module). */
-function registerActionRoutes(app: express.Express, runCommand: (c: Command) => void) {
+function registerActionRoutes(
+  app: express.Express,
+  runCommand: (c: Command) => void,
+  getState: () => EngineState,
+) {
   const route = (
     method: 'get' | 'post',
     urlPath: string,
@@ -129,6 +133,7 @@ function registerActionRoutes(app: express.Express, runCommand: (c: Command) => 
   route('get', '/api/actions/pause', () => ({ type: 'pause' }));
   route('get', '/api/actions/resume', () => ({ type: 'resume' }));
   route('get', '/api/actions/reset', () => ({ type: 'reset' }));
+  route('get', '/api/actions/start-countup', () => ({ type: 'startCountUp' }));
   route('get', '/api/actions/next-block', () => ({ type: 'nextBlock' }));
   route('get', '/api/actions/add-time', (q) => ({
     type: 'addSeconds',
@@ -146,6 +151,10 @@ function registerActionRoutes(app: express.Express, runCommand: (c: Command) => 
     type: 'startQuick',
     durationSeconds: Number(q.seconds ?? '0'),
   }));
+  route('get', '/api/actions/arm-quick', (q) => ({
+    type: 'armQuick',
+    durationSeconds: Number(q.seconds ?? '0'),
+  }));
   route('get', '/api/actions/start-schedule', (q) => ({
     type: 'startSchedule',
     scheduleId: q.id,
@@ -155,6 +164,13 @@ function registerActionRoutes(app: express.Express, runCommand: (c: Command) => 
     scheduleId: q.scheduleId,
     blockId: q.blockId,
   }));
+  route('get', '/api/actions/toggle-display-mode', () => {
+    const current = getState().displaySettings;
+    return {
+      type: 'setDisplaySettings',
+      settings: { ...current, mode: current.mode === 'timer' ? 'clock' : 'timer' },
+    };
+  });
 }
 
 function getLanUrls(port: number): string[] {

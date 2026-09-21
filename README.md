@@ -108,13 +108,16 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 | `GET /api/actions/pause` | | Pause the running timer |
 | `GET /api/actions/resume` | | Resume |
 | `GET /api/actions/reset` | | Stop and clear the current timer/schedule |
+| `GET /api/actions/start-countup` | | Start an open-ended count-up stopwatch (no target duration) |
 | `GET /api/actions/next-block` | | Advance to the next schedule block |
 | `GET /api/actions/add-time` | `seconds` (can be negative) | Add/remove time from the running timer |
 | `GET /api/actions/set-speed` | `percent` (25-400) | Set the countdown speed |
 | `GET /api/actions/set-message` | `text` | Show (or clear, with an empty string) a message on the display |
 | `GET /api/actions/start-quick` | `seconds` | Start a quick timer |
+| `GET /api/actions/arm-quick` | `seconds` | Set a quick timer's duration, paused, without starting it |
 | `GET /api/actions/start-schedule` | `id` | Start a saved schedule from block 1 |
 | `GET /api/actions/jump-block` | `scheduleId`, `blockId` | Jump directly to a block in the running schedule |
+| `GET /api/actions/toggle-display-mode` | | Flip the display between showing the countdown timer and the current time of day |
 
 **Full state / info**: `GET /api/state`, `GET /api/info` (version, port, LAN addresses).
 
@@ -123,17 +126,61 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 `packages/companion-module` is a real Companion module (built and validated against
 the actual `@companion-module/base` SDK). It gives you:
 
-- **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed, Start
-  Quick Timer, Send Message, Clear Message.
-- **Feedback**: "Timer Color State" — a boolean feedback so a button lights up to
-  match the display's current normal/warning/critical/overtime state (great for a
-  traffic-light row of buttons).
-- **Variables**: `remaining_time`, `remaining_seconds`, `color_state`,
-  `active_block_name`, `schedule_offset`, `speed_percent`, `message` — all update
-  live over the same WebSocket the Display uses.
+- **Actions**: Pause, Play/Resume, Reset, Next Block, Add/Remove Time, Set Speed
+  (%), Adjust Speed (±%), Start Quick Timer and Arm Quick Timer (both with
+  hours/minutes/seconds fields — Arm sets the duration, paused, without starting
+  it), Arm Preset (dropdown of your saved CueClock presets — also sets the duration
+  without starting it), Toggle Clock/Timer Display, Send Message, Clear Message.
+  Play/Resume mirrors the Control panel's own button: with nothing armed or
+  running, it starts an open-ended count-up instead of failing.
+- **Feedback**: "Timer Color State" (normal/warning/critical/overtime), "Run State"
+  (idle/running/paused/overtime), and "Display Mode" (timer/clock) — boolean
+  feedbacks you can put on any button so it lights up to match what CueClock is
+  currently doing.
+- **Presets** (ready-made buttons you can drag onto a page), grouped into:
+  - **Transport**: Pause and Play/Resume (each highlights when that's the current
+    run state), Reset, Next Block.
+  - **Add / Remove Time**: matches the Control panel's own step sizes
+    (±10s/1m/5m/10m/1h).
+  - **Speed**: ±1%/±5%/±10% adjustments matching the Control panel's speed steps,
+    plus a Reset Speed to 100% button showing the live speed on its own face.
+  - **Display & Message**: Toggle Clock/Timer Display (highlights which mode is
+    active) and Clear Message.
+  - **Remaining Time (HH / MM / SS)**: three display-only buttons, one per
+    `remaining_hh`/`remaining_mm`/`remaining_ss` variable, so dragging all three
+    next to each other reads as one big HH:MM:SS clock.
+  - **CueClock Presets**: one button per saved CueClock preset that arms it (sets
+    the duration, paused) without starting it — matching how presets behave in the
+    Control panel, so the operator decides exactly when to hit Start/Resume.
+    Regenerates automatically whenever your saved presets change.
+- **Variables**: `remaining_time`, `remaining_seconds`, `remaining_hh`,
+  `remaining_mm`, `remaining_ss`, `color_state`, `run_state`, `display_mode`,
+  `active_block_name`, `schedule_offset`, `speed_percent`, `speed_minute_duration`,
+  `finish_time`, `message` — all update live over the same WebSocket the Display
+  uses.
+  - `remaining_hh`/`remaining_mm`/`remaining_ss` are the hours/minutes/seconds
+    components of the remaining time (2-digit strings), so you can build a
+    three-button "clock" readout out of them.
+  - `run_state` is `idle`/`running`/`paused`/`overtime`.
+  - `display_mode` is `timer` or `clock`, matching the Toggle Clock/Timer action.
+  - `finish_time` is the clock time the countdown will hit zero;
+    `speed_minute_duration` is how long one countdown-minute takes in real time at
+    the current speed.
 
-To use it in Companion (self-build/dev mode, since it isn't published to the
-Companion module registry yet):
+It isn't published to the Companion module registry yet, so load it one of two ways:
+
+**Option A — Companion's "Import module package" button** (simplest for day-to-day use):
+
+```bash
+cd packages/companion-module
+npm install
+npm run package
+```
+
+This produces `cueclock-<version>.tgz` in `packages/companion-module`. In Companion,
+go to Modules → Import module package and select that file.
+
+**Option B — developer mode** (for actively editing the module's code):
 
 ```bash
 cd packages/companion-module
@@ -142,8 +189,10 @@ npm run build
 ```
 
 Then point Companion's module developer mode at this folder (Companion looks for
-`companion/manifest.json` + the built `dist/main.js`), add a CueClock connection, and
-set the host/port to match where CueClock is running (default port `8420`).
+`companion/manifest.json` + the built `dist/main.js`).
+
+Either way, add a CueClock connection and set the host/port to match where CueClock
+is running (default port `8420`).
 
 ## Notes on the schedule/offset model
 

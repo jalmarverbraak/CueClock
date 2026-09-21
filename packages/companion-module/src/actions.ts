@@ -1,4 +1,5 @@
 import type ModuleInstance from './main.js'
+import { clampSpeedPercent, formatDuration, MAX_SPEED_PERCENT, MIN_SPEED_PERCENT } from './cueclockState.js'
 
 export type ActionsSchema = {
 	pause: { options: Record<string, never> }
@@ -7,7 +8,11 @@ export type ActionsSchema = {
 	next_block: { options: Record<string, never> }
 	add_time: { options: { seconds: number } }
 	set_speed: { options: { percent: number } }
-	start_quick: { options: { seconds: number } }
+	adjust_speed: { options: { delta: number } }
+	start_quick: { options: { hours: number; minutes: number; seconds: number } }
+	arm_quick: { options: { hours: number; minutes: number; seconds: number } }
+	arm_preset: { options: { id: string } }
+	toggle_display_mode: { options: Record<string, never> }
 	send_message: { options: { text: string } }
 	clear_message: { options: Record<string, never> }
 }
@@ -20,9 +25,17 @@ export function UpdateActions(self: ModuleInstance): void {
 			callback: async () => self.callAction('/api/actions/pause'),
 		},
 		resume: {
-			name: 'Resume',
+			name: 'Play / Resume',
 			options: [],
-			callback: async () => self.callAction('/api/actions/resume'),
+			callback: async () => {
+				// Mirrors the Control panel's own Play/Resume button: when nothing is
+				// armed or running, "resume" has nothing to resume (the server
+				// rejects it), so start an open-ended count-up timer instead.
+				if (self.getState()?.mode === 'idle') {
+					return self.callAction('/api/actions/start-countup')
+				}
+				return self.callAction('/api/actions/resume')
+			},
 		},
 		reset: {
 			name: 'Reset',
@@ -56,25 +69,83 @@ export function UpdateActions(self: ModuleInstance): void {
 					type: 'number',
 					label: 'Speed percent (100 = real time)',
 					default: 100,
-					min: 25,
-					max: 400,
+					min: MIN_SPEED_PERCENT,
+					max: MAX_SPEED_PERCENT,
 				},
 			],
 			callback: async (event) => self.callAction('/api/actions/set-speed', { percent: event.options.percent }),
 		},
+		adjust_speed: {
+			name: 'Adjust Speed (±%)',
+			options: [
+				{
+					id: 'delta',
+					type: 'number',
+					label: 'Change in percent (negative to slow down)',
+					default: 5,
+					min: -(MAX_SPEED_PERCENT - MIN_SPEED_PERCENT),
+					max: MAX_SPEED_PERCENT - MIN_SPEED_PERCENT,
+				},
+			],
+			callback: async (event) => {
+				const current = self.getState()?.speedPercent ?? 100
+				const next = clampSpeedPercent(current + Number(event.options.delta))
+				return self.callAction('/api/actions/set-speed', { percent: next })
+			},
+		},
 		start_quick: {
 			name: 'Start Quick Timer',
 			options: [
+				{ id: 'hours', type: 'number', label: 'Hours', default: 0, min: 0, max: 24 },
+				{ id: 'minutes', type: 'number', label: 'Minutes', default: 5, min: 0, max: 59 },
+				{ id: 'seconds', type: 'number', label: 'Seconds', default: 0, min: 0, max: 59 },
+			],
+			callback: async (event) => {
+				const totalSeconds =
+					Number(event.options.hours) * 3600 + Number(event.options.minutes) * 60 + Number(event.options.seconds)
+				return self.callAction('/api/actions/start-quick', { seconds: totalSeconds })
+			},
+		},
+		arm_quick: {
+			name: 'Arm Quick Timer (set duration, do not start)',
+			options: [
+				{ id: 'hours', type: 'number', label: 'Hours', default: 0, min: 0, max: 24 },
+				{ id: 'minutes', type: 'number', label: 'Minutes', default: 5, min: 0, max: 59 },
+				{ id: 'seconds', type: 'number', label: 'Seconds', default: 0, min: 0, max: 59 },
+			],
+			callback: async (event) => {
+				const totalSeconds =
+					Number(event.options.hours) * 3600 + Number(event.options.minutes) * 60 + Number(event.options.seconds)
+				return self.callAction('/api/actions/arm-quick', { seconds: totalSeconds })
+			},
+		},
+		arm_preset: {
+			name: 'Arm Preset (set duration, do not start)',
+			options: [
 				{
-					id: 'seconds',
-					type: 'number',
-					label: 'Duration in seconds',
-					default: 300,
-					min: 1,
-					max: 86400,
+					id: 'id',
+					type: 'dropdown',
+					label: 'Preset',
+					default: self.getState()?.presets[0]?.id ?? '',
+					choices: (self.getState()?.presets ?? []).map((p) => ({
+						id: p.id,
+						label: `${p.name} (${formatDuration(p.durationSeconds)})`,
+					})),
 				},
 			],
-			callback: async (event) => self.callAction('/api/actions/start-quick', { seconds: event.options.seconds }),
+			callback: async (event) => {
+				const preset = self.getState()?.presets.find((p) => p.id === event.options.id)
+				if (!preset) {
+					self.log('warn', `Arm Preset: unknown or not-yet-loaded preset id "${event.options.id}"`)
+					return
+				}
+				return self.callAction('/api/actions/arm-quick', { seconds: preset.durationSeconds })
+			},
+		},
+		toggle_display_mode: {
+			name: 'Toggle Clock / Timer Display',
+			options: [],
+			callback: async () => self.callAction('/api/actions/toggle-display-mode'),
 		},
 		send_message: {
 			name: 'Send Message to Display',
