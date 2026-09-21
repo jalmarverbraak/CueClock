@@ -1,5 +1,5 @@
 import type ModuleInstance from './main.js'
-import { formatDuration } from './cueclockState.js'
+import { clampSpeedPercent, formatDuration, MAX_SPEED_PERCENT, MIN_SPEED_PERCENT } from './cueclockState.js'
 
 export type ActionsSchema = {
 	pause: { options: Record<string, never> }
@@ -8,6 +8,7 @@ export type ActionsSchema = {
 	next_block: { options: Record<string, never> }
 	add_time: { options: { seconds: number } }
 	set_speed: { options: { percent: number } }
+	adjust_speed: { options: { delta: number } }
 	start_quick: { options: { hours: number; minutes: number; seconds: number } }
 	start_preset: { options: { id: string } }
 	toggle_display_mode: { options: Record<string, never> }
@@ -59,11 +60,29 @@ export function UpdateActions(self: ModuleInstance): void {
 					type: 'number',
 					label: 'Speed percent (100 = real time)',
 					default: 100,
-					min: 25,
-					max: 400,
+					min: MIN_SPEED_PERCENT,
+					max: MAX_SPEED_PERCENT,
 				},
 			],
 			callback: async (event) => self.callAction('/api/actions/set-speed', { percent: event.options.percent }),
+		},
+		adjust_speed: {
+			name: 'Adjust Speed (±%)',
+			options: [
+				{
+					id: 'delta',
+					type: 'number',
+					label: 'Change in percent (negative to slow down)',
+					default: 5,
+					min: -(MAX_SPEED_PERCENT - MIN_SPEED_PERCENT),
+					max: MAX_SPEED_PERCENT - MIN_SPEED_PERCENT,
+				},
+			],
+			callback: async (event) => {
+				const current = self.getState()?.speedPercent ?? 100
+				const next = clampSpeedPercent(current + Number(event.options.delta))
+				return self.callAction('/api/actions/set-speed', { percent: next })
+			},
 		},
 		start_quick: {
 			name: 'Start Quick Timer',

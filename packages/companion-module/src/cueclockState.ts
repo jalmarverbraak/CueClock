@@ -12,6 +12,13 @@ export interface BlockProjection {
 
 export type DisplayMode = 'timer' | 'clock'
 
+export const MIN_SPEED_PERCENT = 25
+export const MAX_SPEED_PERCENT = 400
+
+export function clampSpeedPercent(percent: number): number {
+	return Math.min(MAX_SPEED_PERCENT, Math.max(MIN_SPEED_PERCENT, percent))
+}
+
 export interface PresetInfo {
 	id: string
 	name: string

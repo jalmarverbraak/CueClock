@@ -99,7 +99,7 @@ export default class ModuleInstance extends InstanceBase<ModuleSchema> {
 				if (data.type === 'state' && data.state) {
 					this.state = data.state
 					this.updateVariables()
-					this.checkFeedbacks('color_state')
+					this.checkFeedbacks('color_state', 'run_state', 'display_mode')
 
 					const presetsKey = JSON.stringify(data.state.presets)
 					if (presetsKey !== this.lastPresetsKey) {

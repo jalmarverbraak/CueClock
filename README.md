@@ -124,16 +124,25 @@ Send any `Command` (see `packages/shared/src/index.ts`) as a JSON text frame to 
 `packages/companion-module` is a real Companion module (built and validated against
 the actual `@companion-module/base` SDK). It gives you:
 
-- **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed, Start
-  Quick Timer (hours/minutes/seconds fields), Start Preset (dropdown of your saved
-  CueClock presets), Toggle Clock/Timer Display, Send Message, Clear Message.
-- **Feedback**: "Timer Color State" — a boolean feedback so a button lights up to
-  match the display's current normal/warning/critical/overtime state (great for a
-  traffic-light row of buttons).
-- **Presets** (ready-made buttons you can drag onto a page): an Add/Remove Time row
-  matching the Control panel's own step sizes (±10s/1m/5m/10m/1h), plus one button
-  per saved CueClock preset that starts it immediately. The preset buttons regenerate
-  automatically whenever your saved presets change.
+- **Actions**: Pause, Resume, Reset, Next Block, Add/Remove Time, Set Speed (%),
+  Adjust Speed (±%), Start Quick Timer (hours/minutes/seconds fields), Start Preset
+  (dropdown of your saved CueClock presets), Toggle Clock/Timer Display, Send
+  Message, Clear Message.
+- **Feedback**: "Timer Color State" (normal/warning/critical/overtime), "Run State"
+  (idle/running/paused/overtime), and "Display Mode" (timer/clock) — boolean
+  feedbacks you can put on any button so it lights up to match what CueClock is
+  currently doing.
+- **Presets** (ready-made buttons you can drag onto a page), grouped into:
+  - **Transport**: Pause and Resume (each highlights when that's the current run
+    state), Reset, Next Block.
+  - **Add / Remove Time**: matches the Control panel's own step sizes
+    (±10s/1m/5m/10m/1h).
+  - **Speed**: ±1%/±5%/±10% adjustments matching the Control panel's speed steps,
+    plus a Reset Speed to 100% button showing the live speed on its own face.
+  - **Display & Message**: Toggle Clock/Timer Display (highlights which mode is
+    active) and Clear Message.
+  - **CueClock Presets**: one button per saved CueClock preset that starts it
+    immediately. Regenerates automatically whenever your saved presets change.
 - **Variables**: `remaining_time`, `remaining_seconds`, `remaining_hh`,
   `remaining_mm`, `remaining_ss`, `color_state`, `run_state`, `display_mode`,
   `active_block_name`, `schedule_offset`, `speed_percent`, `speed_minute_duration`,
