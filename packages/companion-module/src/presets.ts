@@ -37,6 +37,20 @@ function addTransportPresets(presets: PresetDefinitions): string[] {
 			{ feedbackId: 'run_state', options: { state: 'idle' }, style: RUN_STYLE.idle },
 		],
 	}
+	presets.toggle_pause = {
+		type: 'simple',
+		name: 'Pause / Resume (Toggle)',
+		// A single button for both halves of transport, so one spot on the
+		// surface always does the right thing instead of needing the separate
+		// Pause and Play/Resume buttons above.
+		style: { text: '$(self:run_state)', size: '18', color: TEXT_COLOR, bgcolor: NEUTRAL_COLOR },
+		steps: [{ down: [{ actionId: 'toggle_pause', options: {} }], up: [] }],
+		feedbacks: [
+			{ feedbackId: 'run_state', options: { state: 'running' }, style: RUN_STYLE.running },
+			{ feedbackId: 'run_state', options: { state: 'paused' }, style: RUN_STYLE.paused },
+			{ feedbackId: 'run_state', options: { state: 'idle' }, style: RUN_STYLE.idle },
+		],
+	}
 	presets.reset = {
 		type: 'simple',
 		name: 'Reset',
@@ -51,7 +65,7 @@ function addTransportPresets(presets: PresetDefinitions): string[] {
 		steps: [{ down: [{ actionId: 'next_block', options: {} }], up: [] }],
 		feedbacks: [],
 	}
-	return ['pause', 'resume', 'reset', 'next_block']
+	return ['pause', 'resume', 'toggle_pause', 'reset', 'next_block']
 }
 
 function addTimeAdjustPresets(presets: PresetDefinitions): string[] {
