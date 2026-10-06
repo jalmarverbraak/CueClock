@@ -13,6 +13,7 @@ export type ActionsSchema = {
 	arm_quick: { options: { hours: number; minutes: number; seconds: number } }
 	arm_preset: { options: { id: string } }
 	toggle_display_mode: { options: Record<string, never> }
+	toggle_pause: { options: Record<string, never> }
 	send_message: { options: { text: string } }
 	clear_message: { options: Record<string, never> }
 }
@@ -146,6 +147,19 @@ export function UpdateActions(self: ModuleInstance): void {
 			name: 'Toggle Clock / Timer Display',
 			options: [],
 			callback: async () => self.callAction('/api/actions/toggle-display-mode'),
+		},
+		toggle_pause: {
+			name: 'Pause / Resume (Toggle)',
+			options: [],
+			// One button that does the right thing from any state - running pauses,
+			// paused resumes, idle starts a count-up - so it doesn't need a second
+			// button next to it just to know which half to press.
+			callback: async () => {
+				const state = self.getState()
+				if (state?.running) return self.callAction('/api/actions/pause')
+				if (!state || state.mode === 'idle') return self.callAction('/api/actions/start-countup')
+				return self.callAction('/api/actions/resume')
+			},
 		},
 		send_message: {
 			name: 'Send Message to Display',
