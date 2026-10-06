@@ -1,13 +1,16 @@
 name: Release
 
-# Builds the desktop app on macOS and Windows and publishes the installers
-# (.dmg / .exe) straight to a GitHub Release.
+# Builds the desktop app on macOS, Windows and Linux and publishes the
+# installers (.dmg / .exe / .AppImage / .deb) straight to a GitHub Release,
+# then packages the Bitfocus Companion module and attaches it to the same
+# release as a .tgz, ready to import into Companion.
 #
 # To cut a release: bump the version in packages/electron/package.json,
 # commit it, then:
 #   git tag v1.0.0
 #   git push origin v1.0.0
-# A few minutes later the tag's Release page has both installers attached.
+# A few minutes later the tag's Release page has the installers and the
+# Companion module attached.
 # Can also be run manually from the Actions tab (Run workflow) for testing.
 
 on:
@@ -50,3 +53,38 @@ jobs:
           # electron-builder from searching the keychain for one - without
           # this the build fails looking for an identity that doesn't exist.
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+  companion-module:
+    # Waits for the desktop builds so the GitHub release (created by
+    # electron-builder above) already exists for this version to upload into.
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        working-directory: packages/companion-module
+        run: npm ci
+
+      - name: Build and package Companion module
+        working-directory: packages/companion-module
+        run: npm run package
+
+      - name: Determine release tag
+        id: release
+        # electron-builder (above) publishes to a release tagged with the
+        # electron package's own version, regardless of whether this run was
+        # triggered by that tag push or a manual workflow_dispatch - so derive
+        # the same tag here rather than relying on the triggering ref.
+        run: echo "tag=v$(node -p "require('../electron/package.json').version")" >> "$GITHUB_OUTPUT"
+        working-directory: packages/companion-module
+
+      - name: Upload Companion module to release
+        working-directory: packages/companion-module
+        run: gh release upload "${{ steps.release.outputs.tag }}" *.tgz --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
